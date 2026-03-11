@@ -62,3 +62,22 @@ sqlite3 equinox.db "SELECT * FROM routing_decisions"
 ```bash
 pytest tests/ -v
 ```
+
+## Deploy on Railway
+
+1. **Create a Railway account** at [railway.app](https://railway.app) and install the GitHub integration.
+
+2. **New Project → Deploy from GitHub repo** and select `lakshmipunukollu-ai/Equinox`. Railway will detect the Procfile and build from `requirements.txt`.
+
+3. **Set environment variables** in the service → Variables tab (optional; defaults from `.env.example` work for public APIs):
+   - `FUZZY_THRESHOLD` — default `0.75`
+   - `SEMANTIC_THRESHOLD` — default `0.75` (or set in dashboard)
+   - `DATE_WINDOW_DAYS` — default `3`
+   - `KALSHI_API_KEY_ID`, `KALSHI_PRIVATE_KEY_PATH` — only if Kalshi requires auth
+   - `DB_PATH` — optional; default `equinox.db` (ephemeral on Railway unless you add a volume)
+
+4. **Generate a domain** in the service → Settings → Networking → Generate Domain. Your app will be at `https://<your-app>.up.railway.app`.
+
+5. **Frontend**: The same app serves the UI at `/` and the API at `/api/equinox/`. No separate frontend deploy.
+
+**Note:** SQLite (`equinox.db`) is ephemeral on Railway by default — data is lost on redeploy. For persistent storage, add a Railway Volume and set `DB_PATH` to a path inside the volume (e.g. `/data/equinox.db`).

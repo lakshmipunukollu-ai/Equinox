@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+httpx
+pydantic>=2.0
+python-dotenv
+python-dateutil
+rapidfuzz
+aiosqlite
+cryptography
+pytest
+pytest-asyncio
+respx
+sentence-transformers
+scikit-learn

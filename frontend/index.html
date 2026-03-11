@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Equinox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #070a0d;
+      --surface: #0f1419;
+      --border: #1e2a38;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --kalshi: #00e5a0;
+      --polymarket: #2196f3;
+      --warning: #f0ad4e;
+      --success: #00e5a0;
+    }
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .main {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .header h1 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.2s;
+    }
+    .health-dot.live {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+    label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--kalshi);
+    }
+    .btn {
+      padding: 12px 20px;
+      background: var(--kalshi);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      padding: 6px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip:hover {
+      border-color: var(--kalshi);
+      color: var(--kalshi);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .how-it-works {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .how-it-works h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .how-it-works ol {
+      list-style: none;
+      counter-reset: step;
+    }
+    .how-it-works li {
+      counter-increment: step;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-left: 24px;
+      position: relative;
+    }
+    .how-it-works li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      color: var(--kalshi);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-sim { background: rgba(240, 173, 78, 0.2); color: var(--warning); }
+    .badge-kalshi { background: rgba(0, 229, 160, 0.2); color: var(--kalshi); }
+    .badge-polymarket { background: rgba(33, 150, 243, 0.2); color: var(--polymarket); }
+    .market-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .verdict {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .verdict.arb { color: var(--warning); }
+    .confidence-bar-wrap {
+      margin-bottom: 20px;
+    }
+    .confidence-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .confidence-bar {
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%;
+      background: var(--kalshi);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .comparison-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .col-winner { border-top: 3px solid var(--kalshi); }
+    .col-winner.venue-polymarket { border-top-color: var(--polymarket); }
+    .toggle-reasoning {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .toggle-reasoning:hover { border-color: var(--kalshi); color: var(--kalshi); }
+    .reasoning-text {
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .match-badge {
+      padding: 4px 10px;
+      background: var(--bg);
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .matches-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .matches-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .matches-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .matches-table tr:last-child td { border-bottom: none; }
+    .match-cell { width: 33%; }
+    .match-mid { width: 34%; text-align: center; }
+    .price { font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+    .arb-flag { background: rgba(240, 173, 78, 0.15); }
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .empty-state p { margin-bottom: 8px; }
+    .no-matches-card {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .no-matches-card strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="header">
+        <span class="health-dot" id="healthDot" title="API status"></span>
+        <h1>Project Equinox</h1>
+      </div>
+      <div>
+        <label for="query">Search</label>
+        <input type="text" id="query" placeholder="e.g. bitcoin, NBA Finals">
+      </div>
+      <div>
+        <label for="orderSize">Order size ($)</label>
+        <input type="number" id="orderSize" value="100" min="0" step="1">
+      </div>
+      <button class="btn" id="searchBtn">Find Best Venue</button>
+      <div>
+        <label>Quick queries</label>
+        <div class="chips" id="chips">
+          <span class="chip" data-q="NBA Finals">NBA Finals</span>
+          <span class="chip" data-q="bitcoin">bitcoin</span>
+          <span class="chip" data-q="trump">trump</span>
+          <span class="chip" data-q="recession">recession</span>
+          <span class="chip" data-q="Fed rate">Fed rate</span>
+          <span class="chip" data-q="World Cup">World Cup</span>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">Kalshi</div>
+          <div class="stat-value" id="statKalshi">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Polymarket</div>
+          <div class="stat-value" id="statPolymarket">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Matches</div>
+          <div class="stat-value" id="statMatches">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Confidence</div>
+          <div class="stat-value" id="statConfidence">—</div>
+        </div>
+      </div>
+      <div class="how-it-works">
+        <h3>How It Works</h3>
+        <ol>
+          <li><strong>Fetch</strong> — Pull markets from Kalshi and Polymarket APIs</li>
+          <li><strong>Match</strong> — Fuzzy + semantic matching to find equivalent markets</li>
+          <li><strong>Score</strong> — Liquidity, volume, fees, execution quality</li>
+          <li><strong>Route</strong> — Recommend best venue for your order size</li>
+        </ol>
+      </div>
+    </aside>
+    <main class="main" id="mainPanel">
+      <div class="empty-state" id="emptyState">
+        <p>Enter a search term and click <strong>Find Best Venue</strong> to see routing results.</p>
+        <p>Try a quick query chip or search for topics like bitcoin, elections, or sports.</p>
+      </div>
+      <div id="results" style="display: none;"></div>
+    </main>
+  </div>
+
+  <script>
+    const API = '/api/equinox';
+    const healthDot = document.getElementById('healthDot');
+    const queryInput = document.getElementById('query');
+    const orderSizeInput = document.getElementById('orderSize');
+    const searchBtn = document.getElementById('searchBtn');
+    const chips = document.getElementById('chips');
+    const statKalshi = document.getElementById('statKalshi');
+    const statPolymarket = document.getElementById('statPolymarket');
+    const statMatches = document.getElementById('statMatches');
+    const statConfidence = document.getElementById('statConfidence');
+    const emptyState = document.getElementById('emptyState');
+    const resultsEl = document.getElementById('results');
+
+    async function checkHealth() {
+      try {
+        const r = await fetch(API + '/health');
+        const data = await r.json();
+        healthDot.classList.toggle('live', data.status === 'ok');
+        healthDot.title = data.status === 'ok' ? 'API connected' : 'API error';
+      } catch {
+        healthDot.classList.remove('live');
+        healthDot.title = 'API disconnected';
+      }
+    }
+    checkHealth();
+    setInterval(checkHealth, 30000);
+
+    chips.querySelectorAll('.chip').forEach(el => {
+      el.addEventListener('click', () => {
+        queryInput.value = el.dataset.q;
+        runSearch();
+      });
+    });
+
+    searchBtn.addEventListener('click', runSearch);
+    queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+
+    async function runSearch() {
+      const query = queryInput.value.trim();
+      const orderSize = parseFloat(orderSizeInput.value) || 100;
+      if (!query) return;
+
+      searchBtn.disabled = true;
+      statConfidence.textContent = '—';
+      emptyState.style.display = 'none';
+      resultsEl.style.display = 'block';
+      resultsEl.innerHTML = '<div class="empty-state">Loading…</div>';
+
+      const searchUrl = `${API}/search?query=${encodeURIComponent(query)}`;
+      const routeUrl = `${API}/route?query=${encodeURIComponent(query)}&order_size=${orderSize}`;
+
+      let searchData = null;
+      let routeData = null;
+      let routeError = null;
+
+      try {
+        const [searchRes, routeRes] = await Promise.all([
+          fetch(searchUrl),
+          fetch(routeUrl),
+        ]);
+
+        searchData = searchRes.ok ? await searchRes.json() : null;
+        if (!routeRes.ok) {
+          routeError = routeRes.status;
+          try {
+            const err = await routeRes.json();
+            routeError = err.detail || routeRes.status;
+          } catch (_) {}
+        } else {
+          routeData = await routeRes.json();
+        }
+      } catch (e) {
+        routeError = e.message;
+      }
+
+      statKalshi.textContent = searchData ? String(searchData.total_kalshi ?? '—') : '—';
+      statPolymarket.textContent = searchData ? String(searchData.total_polymarket ?? '—') : '—';
+      statMatches.textContent = searchData ? String(searchData.total_matches ?? '—') : '—';
+
+      if (routeData && typeof routeData.score === 'number') {
+        statConfidence.textContent = Math.round(routeData.score * 100) + '%';
+      } else {
+        statConfidence.textContent = '—';
+      }
+
+      renderResults(searchData, routeData, routeError, query);
+      searchBtn.disabled = false;
+    }
+
+    function findMarketById(matches, id) {
+      if (!matches) return null;
+      for (const m of matches) {
+        if (m.market_a && m.market_a.id === id) return m.market_a;
+        if (m.market_b && m.market_b.id === id) return m.market_b;
+      }
+      return null;
+    }
+
+    function getLoserAlternative(route) {
+      if (!route || !route.alternatives) return null;
+      const crossVenue = route.alternatives.filter(a => a.venue !== route.selected_venue);
+      if (crossVenue.length === 0) return null;
+      return crossVenue.reduce((best, a) => (a.final_score > (best?.final_score ?? -1) ? a : best), null);
+    }
+
+    function confidenceLabel(score) {
+      if (score >= 0.8) return 'Very High';
+      if (score >= 0.6) return 'High';
+      if (score >= 0.4) return 'Moderate';
+      return 'Low';
+    }
+
+    function verdictText(route) {
+      if (!route) return '';
+      const div = route.price_divergence;
+      const hasCrossVenue = route.alternatives && route.alternatives.some(a => a.venue !== route.selected_venue);
+      if (div != null && div > 0.10) {
+        return `Potential arbitrage: ${(div * 100).toFixed(1)}¢ price gap between venues. Verify match quality before acting.`;
+      }
+      if (hasCrossVenue && (div == null || div <= 0.10)) {
+        return 'Prices near-identical, selected for liquidity.';
+      }
+      return 'Only venue carrying this market.';
+    }
+
+    function renderResults(searchData, routeData, routeError, query) {
+      let html = '';
+
+      if (routeData) {
+        const totalMatches = searchData?.total_matches ?? 0;
+        const noCrossVenueMatch = totalMatches === 0;
+        const loser = getLoserAlternative(routeData);
+        const loserMarket = loser ? findMarketById(searchData?.matches, loser.id) : null;
+        const sm = routeData.selected_market;
+        const venueColor = sm.venue.toLowerCase() === 'kalshi' ? 'kalshi' : 'polymarket';
+
+        html += '<div class="card">';
+        html += '<div class="card-header">';
+        html += '<span class="card-title">Routing Decision</span>';
+        if (noCrossVenueMatch) html += '<span class="badge" style="background:rgba(139,148,158,0.2);color:var(--text-muted)">No cross-venue match</span>';
+        html += '<span class="badge badge-sim">⚡ Simulation</span>';
+        html += `<span class="badge badge-${venueColor}">${sm.venue.toUpperCase()}</span>`;
+        html += '</div>';
+        html += `<div class="market-title">${escapeHtml(sm.title)}</div>`;
+        html += `<div class="verdict ${routeData.price_divergence > 0.10 ? 'arb' : ''}">${escapeHtml(verdictText(routeData))}</div>`;
+        html += '<div class="confidence-bar-wrap">';
+        html += `<div class="confidence-label">${confidenceLabel(routeData.score)} (${Math.round(routeData.score * 100)}%)</div>`;
+        html += '<div class="confidence-bar"><div class="confidence-fill" style="width:' + (routeData.score * 100) + '%"></div></div>';
+        html += '</div>';
+
+        html += '<table class="comparison-table">';
+        html += '<thead><tr><th></th><th>Winner</th><th>Other venue</th></tr></thead><tbody>';
+        const winnerBorder = venueColor === 'kalshi' ? 'col-winner' : 'col-winner venue-polymarket';
+        const loserBorder = loser ? (loser.venue.toLowerCase() === 'kalshi' ? 'col-winner' : 'col-winner venue-polymarket') : '';
+        const loserDisplay = loserMarket || loser;
+
+        const row = (label, winnerVal, loserVal) => {
+          html += '<tr>';
+          html += `<th>${escapeHtml(label)}</th>`;
+          html += `<td class="${winnerBorder}">${escapeHtml(String(winnerVal ?? '—'))}</td>`;
+          html += `<td class="${loserBorder}">${escapeHtml(String(loserVal ?? '—'))}</td>`;
+          html += '</tr>';
+        };
+
+        if (loserMarket) {
+          row('Yes Price', formatYesPrice(sm.yes_price), formatYesPrice(loserMarket.yes_price));
+          row('Liquidity', '$' + formatNum(sm.liquidity), '$' + formatNum(loserMarket.liquidity));
+          row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, (loserMarket.fee_rate * 100).toFixed(2) + '% ' + loserMarket.fee_model);
+          row('Price Source', sm.price_source, loserMarket.price_source);
+        } else if (loser) {
+          row('Yes Price', formatYesPrice(sm.yes_price), '—');
+          row('Liquidity', '$' + formatNum(sm.liquidity), '—');
+          row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, '—');
+          row('Price Source', sm.price_source, '—');
+        } else {
+          row('Yes Price', formatYesPrice(sm.yes_price), 'No equivalent market found on other venue');
+          row('Liquidity', '$' + formatNum(sm.liquidity), '—');
+          row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, '—');
+          row('Price Source', sm.price_source, '—');
+        }
+        html += '</tbody></table>';
+
+        html += '<button class="toggle-reasoning" data-expanded="false" onclick="var d=this.nextElementSibling;var on=d.style.display!==\'none\';d.style.display=on?\'none\':\'block\';this.textContent=on?\'Show full reasoning\':\'Hide full reasoning\';this.dataset.expanded=on?\'false\':\'true\'">Show full reasoning</button>';
+        html += '<div class="reasoning-text" style="display:none">' + escapeHtml(routeData.reasoning || '') + '</div>';
+        html += '</div>';
+      } else if (routeError) {
+        html += '<div class="card">';
+        html += '<div class="verdict arb">Route failed: ' + escapeHtml(String(routeError)) + '</div>';
+        html += '</div>';
+      }
+
+      const totalMatches = searchData?.total_matches ?? 0;
+      html += '<div class="section-header"><h2>Cross-Venue Matches</h2><span class="match-badge">' + totalMatches + ' match' + (totalMatches === 1 ? '' : 'es') + '</span></div>';
+
+      if (totalMatches === 0) {
+        html += '<div class="no-matches-card">';
+        html += '<strong>No equivalent markets found across venues</strong> for this query. ';
+        html += 'Kalshi and Polymarket may not both list markets for "' + escapeHtml(query) + '". ';
+        html += 'Try a broader search term or a different topic.';
+        html += '</div>';
+      } else {
+        html += '<table class="matches-table"><thead><tr>';
+        html += '<th class="match-cell">Kalshi</th>';
+        html += '<th class="match-mid">Match</th>';
+        html += '<th class="match-cell">Polymarket</th>';
+        html += '</tr></thead><tbody>';
+
+        for (const m of searchData.matches) {
+          const ka = m.market_a?.venue?.toLowerCase() === 'kalshi' ? m.market_a : m.market_b;
+          const pm = m.market_a?.venue?.toLowerCase() === 'polymarket' ? m.market_a : m.market_b;
+          const delta = ka && pm ? Math.abs(ka.yes_price - pm.yes_price) : 0;
+          const arbRow = delta > 0.10 ? ' arb-flag' : '';
+
+          html += '<tr' + arbRow + '>';
+          html += '<td class="match-cell">';
+          if (ka) {
+            html += '<div>' + escapeHtml(ka.title) + '</div>';
+            html += '<div class="price">' + formatYesPrice(ka.yes_price) + '</div>';
+          } else html += '—';
+          html += '</td>';
+          html += '<td class="match-mid">';
+          html += '<div>' + Math.round((m.score || 0) * 100) + '%</div>';
+          html += '<div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(m.method || '') + '</div>';
+          html += '<div class="price">Δ ' + (delta * 100).toFixed(1) + '¢</div>';
+          if (delta > 0.10) html += '<div style="font-size:11px;color:var(--warning)">Potential arbitrage</div>';
+          html += '</td>';
+          html += '<td class="match-cell">';
+          if (pm) {
+            html += '<div>' + escapeHtml(pm.title) + '</div>';
+            html += '<div class="price">' + formatYesPrice(pm.yes_price) + '</div>';
+          } else html += '—';
+          html += '</td>';
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+      }
+
+      resultsEl.innerHTML = html;
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function formatNum(n) {
+      if (n == null) return '—';
+      return Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    }
+
+    /** yes_price is 0-1 probability; normalize if API ever sends 0-100. */
+    function formatYesPrice(p) {
+      if (p == null || Number.isNaN(p)) return '—';
+      const prob = Number(p);
+      const decimal = prob > 1 ? prob / 100 : prob;
+      return (decimal * 100).toFixed(1) + '¢';
+    }
+  </script>
+</body>
+</html>

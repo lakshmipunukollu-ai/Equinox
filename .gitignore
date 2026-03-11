@@ -1,0 +1,8 @@
+.env
+equinox.db
+logs/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.pem

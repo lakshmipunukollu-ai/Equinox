@@ -2,25 +2,33 @@
 Single-responsibility: fetch raw market data from the Polymarket Gamma API.
 Uses the public-search endpoint for query-based search. No authentication required.
 Returns raw dicts only — no transformation.
+Set POLYMARKET_API_BASE_URL to a proxy URL if the default is blocked or rate-limited (e.g. in cloud).
 """
 
 import asyncio
+import os
 
 import httpx
 
 from equinox.logger import log_trace
 
-GAMMA_BASE = "https://gamma-api.polymarket.com"
+GAMMA_BASE = os.getenv("POLYMARKET_API_BASE_URL", "https://gamma-api.polymarket.com").rstrip("/")
 SEARCH_PATH = "/public-search"
+
+
+def _polymarket_timeout() -> float:
+    """Timeout in seconds for Polymarket HTTP client. Use POLYMARKET_TIMEOUT_SECONDS (default 10)."""
+    return min(float(os.getenv("POLYMARKET_TIMEOUT_SECONDS", "10")), 60.0)
 
 
 async def fetch_markets(query: str, limit: int = 50) -> list[dict]:
     """Fetch raw Polymarket markets from Gamma API public-search endpoint."""
     url = f"{GAMMA_BASE}{SEARCH_PATH}"
     params = {"q": query, "limit_per_type": max(limit, 20)}
+    timeout = _polymarket_timeout()
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(url, params=params)
             if resp.status_code == 429:
                 for n, wait in enumerate([1, 2, 4], 1):

@@ -997,10 +997,13 @@
     }
 
     function buildExpandedComparisonHtml(routeData, orderSize, matchIndex) {
-      const loserMarket = getLoserMarket(routeData);
+      let loserMarket = getLoserMarket(routeData);
       const sm = routeData.selected_market;
       const winnerVenue = (sm && sm.venue) || 'Winner';
-      const loserVenue = loserMarket ? (loserMarket.venue || 'Other') : 'Other';
+      if (loserMarket && loserMarket.venue && (loserMarket.venue || '').toLowerCase() === (winnerVenue || '').toLowerCase()) {
+        loserMarket = null;
+      }
+      const loserVenue = loserMarket ? (loserMarket.venue || 'Other') : 'No other venue';
       const venueColor = winnerVenue.toLowerCase() === 'kalshi' ? 'kalshi' : 'polymarket';
       const winnerColClass = venueColor === 'kalshi' ? 'col-kalshi-header' : 'col-polymarket-header';
       const loserColClass = loserMarket && loserMarket.venue && loserMarket.venue.toLowerCase() === 'kalshi' ? 'col-kalshi-header' : 'col-polymarket-header';
@@ -1019,6 +1022,10 @@
         const winGrade = routeData.winner_execution_quality || '—';
         const loseGrade = routeData.loser_execution_quality || '—';
         row('Execution quality', winGrade, loseGrade);
+      } else {
+        row('Yes Price (per share)', formatPrice(sm.yes_price), '—');
+        row('Liquidity', formatLiquidity(sm.liquidity), 'No equivalent market on other venue');
+        row('Fee rate', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, '—');
       }
       html += '</tbody></table>';
       html += '<div class="plain-reasoning"><h4>💡 Why ' + escapeHtml(winnerVenue) + '?</h4><p>' + escapeHtml(buildPlainReasoning(routeData, orderSize)) + '</p></div>';
@@ -1047,11 +1054,14 @@
       if (routeData) {
         const totalMatches = searchData?.total_matches ?? 0;
         const noCrossVenueMatch = totalMatches === 0;
-        const loserMarket = getLoserMarket(routeData);
-        const loser = routeData.runner_up_market || (routeData.alternatives && routeData.alternatives[0]);
+        let loserMarket = getLoserMarket(routeData);
         const sm = routeData.selected_market;
         const winnerVenue = sm.venue || 'Winner';
-        const loserVenue = loserMarket ? (loserMarket.venue || loser?.venue) : (loser?.venue || 'Other');
+        if (loserMarket && loserMarket.venue && loserMarket.venue.toLowerCase() === (winnerVenue || '').toLowerCase()) {
+          loserMarket = null;
+        }
+        const loser = routeData.runner_up_market || (routeData.alternatives && routeData.alternatives[0]);
+        const loserVenue = loserMarket ? (loserMarket.venue || loser?.venue) : (loser && loser.venue !== winnerVenue ? loser.venue : null) || 'No other venue';
         const venueColor = winnerVenue.toLowerCase() === 'kalshi' ? 'kalshi' : 'polymarket';
 
         const savings = (routeData.estimated_savings != null ? routeData.estimated_savings : null);

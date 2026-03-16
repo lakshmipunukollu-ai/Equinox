@@ -1,6 +1,7 @@
 """Single-responsibility: expose the Equinox pipeline as HTTP endpoints."""
 
 import asyncio
+import os
 import time
 from collections import OrderedDict
 
@@ -31,7 +32,8 @@ CACHE_MAX_SIZE = 20
 _search_cache: OrderedDict = OrderedDict()
 _route_cache: OrderedDict = OrderedDict()
 
-API_TIMEOUT_SEC = 8.0
+API_TIMEOUT_SEC = float(os.getenv("KALSHI_TIMEOUT_SECONDS", "8"))
+POLYMARKET_TIMEOUT_SEC = float(os.getenv("POLYMARKET_TIMEOUT_SECONDS", "8"))
 
 
 def _cache_get(cache: OrderedDict, key: str):
@@ -52,13 +54,13 @@ def _cache_set(cache: OrderedDict, key: str, data):
     cache.move_to_end(key)
 
 
-async def _fetch_with_timeout(coro, label: str):
-    """Run a single fetch with 8s timeout. Returns (result, error_msg)."""
+async def _fetch_with_timeout(coro, label: str, timeout_sec: float):
+    """Run a single fetch with given timeout. Returns (result, error_msg)."""
     try:
-        return await asyncio.wait_for(coro, timeout=API_TIMEOUT_SEC), None
+        return await asyncio.wait_for(coro, timeout=timeout_sec), None
     except asyncio.TimeoutError:
-        log_trace("api", f"{label} timed out after {API_TIMEOUT_SEC}s", {}, level="warning")
-        return [], f"{label} timed out after {API_TIMEOUT_SEC}s"
+        log_trace("api", f"{label} timed out after {timeout_sec}s", {}, level="warning")
+        return [], f"{label} timed out after {timeout_sec}s"
     except Exception as e:
         log_trace("api", f"{label} failed: {e}", {"error": str(e)}, level="error")
         return [], str(e)
@@ -81,8 +83,8 @@ async def search(query: str = Query(default="", description="Search term")):
     if cached is not None:
         return {**cached, "cached": True}
 
-    kalshi_task = _fetch_with_timeout(kalshi.fetch_markets(query, page_size=100), "Kalshi")
-    poly_task = _fetch_with_timeout(polymarket.fetch_markets(query, limit=100), "Polymarket")
+    kalshi_task = _fetch_with_timeout(kalshi.fetch_markets(query, page_size=100), "Kalshi", API_TIMEOUT_SEC)
+    poly_task = _fetch_with_timeout(polymarket.fetch_markets(query, limit=100), "Polymarket", POLYMARKET_TIMEOUT_SEC)
     (kalshi_result, kalshi_err), (poly_result, poly_err) = await asyncio.gather(kalshi_task, poly_task)
     kalshi_raw = kalshi_result if isinstance(kalshi_result, list) else []
     polymarket_raw = poly_result if isinstance(poly_result, list) else []
@@ -160,8 +162,8 @@ async def get_route_decision(query: str, order_size: float) -> dict:
     if cached is not None:
         return {**cached, "cached": True}
 
-    kalshi_task = _fetch_with_timeout(kalshi.fetch_markets(query, page_size=100), "Kalshi")
-    poly_task = _fetch_with_timeout(polymarket.fetch_markets(query, limit=100), "Polymarket")
+    kalshi_task = _fetch_with_timeout(kalshi.fetch_markets(query, page_size=100), "Kalshi", API_TIMEOUT_SEC)
+    poly_task = _fetch_with_timeout(polymarket.fetch_markets(query, limit=100), "Polymarket", POLYMARKET_TIMEOUT_SEC)
     (kalshi_result, kalshi_err), (poly_result, poly_err) = await asyncio.gather(kalshi_task, poly_task)
     kalshi_raw = kalshi_result if isinstance(kalshi_result, list) else []
     polymarket_raw = poly_result if isinstance(poly_result, list) else []

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -12,14 +13,36 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 
 from equinox.api import router as equinox_router, build_route_export, get_route_decision
+from equinox.logger import log_trace
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 from equinox.matcher.engine import load_semantic_model
 from equinox.store.db import init_db
 
 
+def _validate_env_startup():
+    """Log warnings for missing optional env vars so production can be audited."""
+    missing = []
+    if not os.getenv("HF_TOKEN"):
+        missing.append("HF_TOKEN (optional; improves model download rate limits)")
+    if not os.getenv("KALSHI_API_KEY_ID") or not os.getenv("KALSHI_PRIVATE_KEY_PATH"):
+        missing.append("KALSHI_API_KEY_ID / KALSHI_PRIVATE_KEY_PATH (optional; required if Kalshi returns 401)")
+    if not os.getenv("POLYMARKET_API_BASE_URL"):
+        missing.append("POLYMARKET_API_BASE_URL (optional; set to proxy URL if Polymarket blocks cloud IPs)")
+    if not os.getenv("POLYMARKET_TIMEOUT_SECONDS"):
+        missing.append("POLYMARKET_TIMEOUT_SECONDS (optional; default 8; use 15–20 in production if fetches time out)")
+    if missing:
+        log_trace(
+            "startup",
+            "Some optional env vars are unset. App will run with defaults; set in Railway Variables if needed: " + "; ".join(missing),
+            {"missing": missing},
+            level="warning",
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _validate_env_startup()
     await init_db()
     await asyncio.to_thread(load_semantic_model)
     yield

@@ -29,9 +29,12 @@ def _setup_logger() -> logging.Logger:
     console.setFormatter(logging.Formatter("%(levelname)s | %(name)s | %(message)s"))
     root.addHandler(console)
 
-    # Handler 2 — FileHandler (logs/equinox.log): DEBUG+
-    os.makedirs("logs", exist_ok=True)
-    file_handler = logging.FileHandler("logs/equinox.log", encoding="utf-8")
+    # Handler 2 — FileHandler (LOG_PATH from env, default logs/equinox.log): DEBUG+
+    log_path = os.getenv("LOG_PATH", "logs/equinox.log")
+    log_dir = os.path.dirname(log_path)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")

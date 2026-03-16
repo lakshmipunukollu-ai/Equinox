@@ -60,3 +60,24 @@ def parse_utc_datetime(
     if result.tzinfo is None:
         result = result.replace(tzinfo=timezone.utc)
     return result
+
+
+def parse_utc_datetime_from_fields(
+    d: dict | None, field_names: list[str]
+) -> datetime:
+    """
+    Try each key in field_names; parse first present value with parse_utc_datetime.
+    If none present, default to current UTC (single warning using first field name).
+    Use when the venue API may use different names for the same date (e.g. endDateIso, end_date, endDate, expiration_time).
+    """
+    if not d or not isinstance(d, dict):
+        return parse_utc_datetime(
+            None, field_names[0] if field_names else "endDateIso"
+        )
+    for name in field_names:
+        val = d.get(name)
+        if val is not None and val != "":
+            return parse_utc_datetime(val, name)
+    return parse_utc_datetime(
+        None, field_names[0] if field_names else "endDateIso"
+    )

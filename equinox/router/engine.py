@@ -17,6 +17,8 @@ from equinox.models import Market, MatchResult, RoutingDecision
 VOLUME_CAP = float(os.getenv("VOLUME_CAP", "100000"))
 FEE_CAP = float(os.getenv("FEE_CAP", "0.10"))
 SPREAD_WIDTH_CAP = float(os.getenv("SPREAD_WIDTH_CAP", "0.20"))
+MAX_PRICE_AGE_HOURS = float(os.getenv("MAX_PRICE_AGE_HOURS", "24"))
+MAX_DIVERGENCE = float(os.getenv("MAX_DIVERGENCE", "0.20"))
 
 
 def _all_in_cost(market: Market) -> float:
@@ -151,6 +153,49 @@ def route(
     all_markets: list[Market] | None = None,
 ) -> RoutingDecision:
     """Select best venue for a hypothetical order."""
+    now = datetime.now(timezone.utc)
+    max_age_seconds = MAX_PRICE_AGE_HOURS * 3600
+
+    if all_markets:
+        non_stale = [
+            m
+            for m in all_markets
+            if m.price_updated_at is None
+            or (now - m.price_updated_at).total_seconds() <= max_age_seconds
+        ]
+        if len(non_stale) < len(all_markets):
+            log_trace(
+                "route",
+                f"Excluded {len(all_markets) - len(non_stale)} stale markets "
+                f"(price older than {MAX_PRICE_AGE_HOURS}h).",
+                {"excluded": len(all_markets) - len(non_stale)},
+                level="warning",
+            )
+        all_markets = non_stale
+        non_stale_ids = {m.id for m in all_markets}
+        matches = [m for m in matches if m.market_a.id in non_stale_ids and m.market_b.id in non_stale_ids]
+
+    valid_matches = []
+    for m in matches:
+        div = abs(m.market_a.yes_price - m.market_b.yes_price)
+        if div > MAX_DIVERGENCE:
+            log_trace(
+                "route",
+                "Match invalidated: price divergence exceeds MAX_DIVERGENCE.",
+                {
+                    "market_a_id": m.market_a.id,
+                    "market_b_id": m.market_b.id,
+                    "yes_a": m.market_a.yes_price,
+                    "yes_b": m.market_b.yes_price,
+                    "divergence": round(div, 4),
+                    "max_allowed": MAX_DIVERGENCE,
+                },
+                level="warning",
+            )
+        else:
+            valid_matches.append(m)
+    matches = valid_matches
+
     if not matches:
         if all_markets:
             log_trace(

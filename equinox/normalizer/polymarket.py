@@ -9,7 +9,7 @@ import os
 
 from equinox.logger import log_trace
 from equinox.models import Market
-from equinox.utils import _to_ascii, parse_utc_datetime
+from equinox.utils import _to_ascii, parse_utc_datetime, parse_utc_datetime_from_fields
 
 
 def _safe_float(val: str | int | float | None, default: float | None) -> float | None:
@@ -110,7 +110,9 @@ def normalize(markets_list: list[dict]) -> list[Market]:
             liquidity = volume if volume else 0.0
         if liquidity == 0 and volume > 0:
             liquidity = volume  # use volume as liquidity proxy when liquidity field missing
-        close_time = parse_utc_datetime(raw.get("endDateIso"), "endDateIso")
+        close_time = parse_utc_datetime_from_fields(
+            raw, ["endDateIso", "end_date", "endDate", "expiration_time"]
+        )
         url = ""  # Platform links removed until API URL fields confirmed working
 
         log_trace(

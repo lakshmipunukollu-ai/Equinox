@@ -101,8 +101,8 @@ def test_empty_matches_raises_value_error():
         route([], all_markets=None)
 
 
-def test_large_price_divergence_triggers_arb_warning():
-    """25¢ divergence → price_divergence set, arb warning in reasoning."""
+def test_large_price_divergence_invalidates_match():
+    """Divergence > MAX_DIVERGENCE (0.20) → match invalidated, no route (ValueError)."""
     m_a = _market("kalshi", "K1", "Market", yes_price=0.40, liquidity=5000)
     m_b = _market("polymarket", "P1", "Market", yes_price=0.65, liquidity=5000)
     match = MatchResult(
@@ -112,13 +112,8 @@ def test_large_price_divergence_triggers_arb_warning():
         method="fuzzy",
         explanation="Test",
     )
-    decision = route([match])
-    assert decision.price_divergence == pytest.approx(0.25, abs=0.001)
-    assert decision.price_divergence > 0.10
-    assert any(
-        p in decision.reasoning.lower()
-        for p in ["arbitrage", "divergence", "data quality"]
-    )
+    with pytest.raises(ValueError, match="No matched markets"):
+        route([match])
 
 
 def test_price_divergence_none_on_single_venue_fallback():

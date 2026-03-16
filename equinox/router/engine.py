@@ -19,6 +19,59 @@ FEE_CAP = float(os.getenv("FEE_CAP", "0.10"))
 SPREAD_WIDTH_CAP = float(os.getenv("SPREAD_WIDTH_CAP", "0.20"))
 
 
+def _all_in_cost(market: Market) -> float:
+    """All-in cost per share (yes_price + fee in same units)."""
+    if market.fee_model == "additive":
+        return min(market.yes_price + market.fee_rate, 1.0)
+    return min(market.yes_price * (1.0 + market.fee_rate), 1.0)
+
+
+def _execution_quality_score(market: Market, order_size: float, all_in: float) -> tuple[float, str]:
+    """
+    Compute execution quality score 0-100 and letter grade.
+    Weights: spread 40%, liquidity utilization 40%, fee cost 20%.
+    """
+    score = 0.0
+    spread = market.spread_width if market.spread_width is not None else 0.01
+    if spread <= 0.001:
+        score += 40
+    elif spread <= 0.002:
+        score += 30
+    elif spread <= 0.005:
+        score += 20
+    else:
+        score += 10
+
+    utilization = order_size / max(market.liquidity, 1.0)
+    if utilization < 0.01:
+        score += 40
+    elif utilization < 0.05:
+        score += 30
+    elif utilization < 0.10:
+        score += 20
+    else:
+        score += 10
+
+    if all_in < 0.001:
+        score += 20
+    elif all_in < 0.005:
+        score += 15
+    else:
+        score += 5
+
+    if score >= 90:
+        return score, "A+"
+    if score >= 80:
+        return score, "A"
+    if score >= 70:
+        return score, "B+"
+    if score >= 60:
+        return score, "B"
+    if score >= 50:
+        return score, "C"
+    return score, "D"
+
+
 def _score_market(market: Market, order_size: float) -> tuple[float, dict]:
     """Score a market for routing. Returns (final_score, components_dict)."""
     # Liquidity: order-size-aware
@@ -145,8 +198,13 @@ def route(
     winner, score, components = tuples[0]
     is_single_venue_fallback = not matches
 
+    # For comparison table we need the best market from the *other* venue (not just second-best overall).
     if len(tuples) > 1:
-        loser, loser_score, loser_components = tuples[1]
+        other_venue_tuples = [(m, sc, comp) for m, sc, comp in tuples[1:] if m.venue != winner.venue]
+        if other_venue_tuples:
+            loser, loser_score, loser_components = other_venue_tuples[0]
+        else:
+            loser, loser_score, loser_components = tuples[1]
     else:
         loser, loser_score, loser_components = winner, 0.0, components
         log_trace(
@@ -212,6 +270,17 @@ def route(
             level="warning",
         )
 
+    winner_all_in = components["all_in_price"]
+    loser_all_in = loser_components["all_in_price"]
+    estimated_savings = order_size * (loser_all_in - winner_all_in)
+    estimated_savings = round(max(0.0, estimated_savings), 2)
+    assert estimated_savings >= 0, (
+        "Winner should always cost less: "
+        f"winner_all_in={winner_all_in}, loser_all_in={loser_all_in}, "
+        f"order_size={order_size}"
+    )
+    estimated_savings_text = f"Save ~${estimated_savings:.2f}" if estimated_savings > 0 else "—"
+
     winner_spread_desc = (
         f"{winner.spread_width*100:.1f}¢ bid-ask spread"
         if winner.spread_width is not None
@@ -228,6 +297,18 @@ def route(
         "not possible. "
         if is_single_venue_fallback
         else ""
+    )
+
+    # Fee explanation: compare all-in cost, not raw fee rates (additive vs multiplicative)
+    winner_cheaper = winner_all_in < loser_all_in
+    fee_explanation = (
+        f"{winner.venue.capitalize()}'s {winner.fee_rate:.0%} {winner.fee_model} fee "
+        f"costs less at this price level (all-in {winner_all_in:.4f}) than "
+        f"{loser.venue.capitalize()}'s {loser.fee_rate:.0%} {loser.fee_model} fee "
+        f"(all-in {loser_all_in:.4f}). "
+        if winner_cheaper
+        else f"All-in cost: {winner.venue.capitalize()} {winner_all_in:.4f} vs "
+        f"{loser.venue.capitalize()} {loser_all_in:.4f}. "
     )
 
     def _source_note(market: Market, comps: dict) -> str:
@@ -250,10 +331,7 @@ def route(
         f"{loser.venue.capitalize()} yes_price: {loser.yes_price:.4f} "
         f"(source: {loser.price_source}) — "
         f"a {abs(winner.yes_price - loser.yes_price)*100:.1f}¢ mid-price difference. "
-        f"{winner.venue.capitalize()} fee_rate: {winner.fee_rate:.2%} ({winner.fee_model}), "
-        f"all-in YES cost: {components['all_in_price']:.4f} vs "
-        f"{loser.venue.capitalize()} fee_rate: {loser.fee_rate:.2%} ({loser.fee_model}), "
-        f"all-in YES cost: {loser_components['all_in_price']:.4f}. "
+        f"{fee_explanation}"
         f"{arb_warning}"
         f"{winner.venue.capitalize()} execution: {winner_spread_desc} vs "
         f"{loser.venue.capitalize()} execution: {loser_spread_desc}. "
@@ -284,6 +362,34 @@ def route(
         for m, _, comps in tuples[1:]
     ]
 
+    # Execution quality grades
+    winner_eq_score, winner_eq_grade = _execution_quality_score(winner, order_size, winner_all_in)
+    loser_eq_score, loser_eq_grade = _execution_quality_score(loser, order_size, loser_all_in)
+
+    # Confidence breakdown (0-1 scale for UI bars). Overall = weighted average of components.
+    if loser is not winner:
+        min_price = min(winner.yes_price, loser.yes_price) or 0.01
+        price_diff = abs(winner.yes_price - loser.yes_price)
+        price_signal = 0.0 if price_diff == 0 else min(1.0, (price_diff / min_price))
+        fee_advantage = min(1.0, abs(winner.fee_rate - loser.fee_rate) * 100)
+    else:
+        price_signal = 0.5
+        fee_advantage = 0.5
+    confidence_breakdown = {
+        "price_signal": round(price_signal, 2),
+        "fee_advantage": round(fee_advantage, 2),
+        "liquidity_score": round(components["liquidity_score"], 2),
+        "execution_score": round(components["execution_score"], 2),
+    }
+    # Overall = weighted average of all components (not just liquidity)
+    overall = (
+        confidence_breakdown["price_signal"] * 0.25
+        + confidence_breakdown["fee_advantage"] * 0.25
+        + confidence_breakdown["liquidity_score"] * 0.25
+        + confidence_breakdown["execution_score"] * 0.25
+    )
+    confidence_breakdown["overall"] = round(min(1.0, max(0.0, overall)), 2)
+
     log_trace(
         "route",
         reasoning,
@@ -296,6 +402,7 @@ def route(
         },
     )
 
+    runner_up = loser if loser is not winner else None
     return RoutingDecision(
         selected_venue=winner.venue,
         selected_market=winner,
@@ -304,4 +411,12 @@ def route(
         alternatives=alternatives,
         price_divergence=price_divergence,
         simulation=True,
+        runner_up_market=runner_up,
+        winner_all_in_cost=round(winner_all_in, 4),
+        loser_all_in_cost=round(loser_all_in, 4),
+        estimated_savings=estimated_savings,
+        estimated_savings_text=estimated_savings_text,
+        winner_execution_quality=winner_eq_grade,
+        loser_execution_quality=loser_eq_grade,
+        confidence_breakdown=confidence_breakdown,
     )

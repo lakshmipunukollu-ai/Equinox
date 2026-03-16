@@ -97,10 +97,21 @@ def normalize(markets_list: list[dict]) -> list[Market]:
 
         no_price = round(1.0 - yes_price, 6)
         volume = _safe_float(raw.get("volume"), 0.0) or 0.0
-        liquidity = _safe_float(raw.get("liquidity"), _safe_float(raw.get("volume"), 0.0))
-        liquidity = liquidity if liquidity is not None else volume
+        # Liquidity: try multiple API field names (Gamma API structure can vary)
+        liquidity = (
+            _safe_float(raw.get("liquidity"), None)
+            or _safe_float(raw.get("volume"), None)
+            or _safe_float(raw.get("volumeNum"), None)
+            or _safe_float(raw.get("liquidityNum"), None)
+            or _safe_float(raw.get("volumeNumber"), None)
+            or _safe_float(raw.get("depth"), None)
+        )
+        if liquidity is None or liquidity < 0:
+            liquidity = volume if volume else 0.0
+        if liquidity == 0 and volume > 0:
+            liquidity = volume  # use volume as liquidity proxy when liquidity field missing
         close_time = parse_utc_datetime(raw.get("endDateIso"), "endDateIso")
-        url = f"https://polymarket.com/event/{raw.get('slug') or raw.get('id', '')}"
+        url = ""  # Platform links removed until API URL fields confirmed working
 
         log_trace(
             "normalize",

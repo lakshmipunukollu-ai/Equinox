@@ -57,3 +57,14 @@ class RoutingDecision(BaseModel):
     alternatives: list[dict]
     price_divergence: float | None
     simulation: bool = True
+    runner_up_market: Market | None = None  # loser for plain-English summary and savings
+    # Fee/savings: all-in cost and estimated savings (winner is always cheaper)
+    winner_all_in_cost: float | None = None
+    loser_all_in_cost: float | None = None
+    estimated_savings: float | None = None
+    estimated_savings_text: str | None = None  # Plain text e.g. "Save ~$5.00" for UI (no HTML)
+    # Execution quality letter grade (A+, A, B+, etc.)
+    winner_execution_quality: str | None = None
+    loser_execution_quality: str | None = None
+    # Confidence breakdown for UI (0-1 each)
+    confidence_breakdown: dict | None = None

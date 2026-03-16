@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from main import app
 from tests.conftest import SAMPLE_KALSHI_SERIES, SAMPLE_POLYMARKET_LIST
+from equinox.api import _search_cache, _route_cache
 
 
 @pytest.fixture
@@ -61,6 +62,8 @@ async def test_kalshi_missing_current_page_key():
 @respx.mock
 async def test_kalshi_401_triggers_retry_not_empty_return(throwaway_pem, monkeypatch):
     """401 on first call, 200 on retry with auth → non-empty result."""
+    _search_cache.clear()
+    _route_cache.clear()
     monkeypatch.setenv("KALSHI_API_KEY_ID", "test-key-id")
     monkeypatch.setenv("KALSHI_PRIVATE_KEY_PATH", throwaway_pem)
 
@@ -150,3 +153,34 @@ async def test_route_no_matches_returns_404():
     ) as client:
         resp = await client.get("/api/equinox/route?query=nonexistentxyz123")
     assert resp.status_code == 404
+
+
+@respx.mock
+async def test_public_api_route_returns_export_shape():
+    """GET /api/route?q=...&size=... returns winner, loser, estimated_savings, etc."""
+    respx.get("https://api.elections.kalshi.com/v1/search/series").mock(
+        return_value=httpx.Response(200, json={"current_page": SAMPLE_KALSHI_SERIES})
+    )
+    respx.get("https://gamma-api.polymarket.com/public-search").mock(
+        return_value=httpx.Response(
+            200,
+            json={"events": [{"markets": SAMPLE_POLYMARKET_LIST}]},
+        )
+    )
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/api/route?q=bitcoin&size=1000")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "query" in data
+    assert data["query"] == "bitcoin"
+    assert data["order_size"] == 1000
+    assert "timestamp" in data
+    assert "recommended_venue" in data
+    assert "confidence" in data
+    assert "winner" in data
+    assert "loser" in data
+    assert "estimated_savings" in data
+    assert "estimated_savings_text" in data

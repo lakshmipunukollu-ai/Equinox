@@ -29,7 +29,7 @@ def normalize(series_list: list[dict]) -> list[Market]:
     results: list[Market] = []
     for series in series_list:
         for market in series.get("markets", []):
-            ticker = market.get("ticker", "unknown")
+            ticker = market.get("ticker") or market.get("market_ticker") or "unknown"
             id_ = f"kalshi:{ticker}"
             venue = "kalshi"
             title_parts = []
@@ -122,7 +122,7 @@ def normalize(series_list: list[dict]) -> list[Market]:
             volume = float(market.get("volume", 0))
             liquidity = float(market.get("volume", 0))
             close_time = parse_utc_datetime(market.get("close_ts"), "close_ts")
-            url = f"https://kalshi.com/markets/{ticker}"
+            url = ""  # Platform links removed until API URL fields confirmed working
 
             log_trace(
                 "normalize",

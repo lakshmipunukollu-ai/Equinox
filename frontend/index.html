@@ -15,10 +15,10 @@
       --border: #1e2a38;
       --text: #e6edf3;
       --text-muted: #8b949e;
-      --kalshi: #00e5a0;
-      --polymarket: #2196f3;
+      --kalshi: #00D2A0;
+      --polymarket: #0070F3;
       --warning: #f0ad4e;
-      --success: #00e5a0;
+      --success: #00D2A0;
     }
     body {
       font-family: 'IBM Plex Sans', sans-serif;
@@ -268,6 +268,10 @@
     .comparison-table tr:last-child td { border-bottom: none; }
     .col-winner { border-top: 3px solid var(--kalshi); }
     .col-winner.venue-polymarket { border-top-color: var(--polymarket); }
+    .col-kalshi-header, .col-kalshi { color: var(--kalshi); }
+    .col-polymarket-header, .col-polymarket { color: var(--polymarket); }
+    .verdict-banner.venue-kalshi { border-left: 4px solid var(--kalshi); }
+    .verdict-banner.venue-polymarket { border-left: 4px solid var(--polymarket); }
     .toggle-reasoning {
       margin-top: 16px;
       padding: 10px 14px;
@@ -336,7 +340,6 @@
     .match-cell { width: 33%; }
     .match-mid { width: 34%; text-align: center; }
     .price { font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
-    .arb-flag { background: rgba(240, 173, 78, 0.15); }
     .empty-state {
       padding: 40px;
       text-align: center;
@@ -355,6 +358,154 @@
       line-height: 1.6;
     }
     .no-matches-card strong { color: var(--text); }
+    .loading-steps {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .loading-steps h3 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+    .loading-step.done { color: var(--success); }
+    .loading-step.active { color: var(--text); }
+    .loading-step .icon { font-size: 18px; }
+    .candidate-count { margin-top: 12px; font-size: 13px; color: var(--text-muted); }
+    .cached-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(0, 229, 160, 0.2);
+      color: var(--success);
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      margin-left: 8px;
+    }
+    .verdict-banner {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .verdict-banner.high { background: rgba(0, 229, 160, 0.15); border: 1px solid rgba(0, 229, 160, 0.4); color: var(--text); }
+    .verdict-banner.low { background: rgba(240, 173, 78, 0.15); border: 1px solid rgba(240, 173, 78, 0.4); color: var(--text); }
+    .plain-reasoning {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .plain-reasoning h4 { font-size: 13px; margin-bottom: 8px; color: var(--text); }
+    .confidence-tooltip { cursor: help; margin-left: 4px; opacity: 0.7; }
+    .col-winner-name { font-weight: 600; color: var(--success); }
+    .col-winner-name .recommended { font-size: 11px; color: var(--text-muted); font-weight: 400; display: block; margin-top: 2px; }
+    .col-loser-name { color: var(--text-muted); }
+    .savings-row .savings-val { color: var(--success); font-weight: 600; }
+    .match-row-card {
+      display: block;
+      margin-bottom: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .match-row-card:hover { background: rgba(30, 42, 56, 0.4); border-color: var(--border); }
+    .match-row-card.best-delta { border-color: #d4af37; }
+    .match-row-card.best-delta:hover { box-shadow: 0 0 0 1px #d4af37; }
+    .match-row-header { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; }
+    .match-row-card .expand-indicator { font-size: 12px; color: var(--text-muted); flex-shrink: 0; transition: transform 0.2s; }
+    .match-row-card.expanded .expand-indicator { color: var(--text); }
+    .match-row-card .match-row-title { font-weight: 500; margin-bottom: 6px; flex: 1; }
+    .match-row-card .match-row-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .match-row-meta .kalshi-label, .match-row-meta .kalshi-val { color: var(--kalshi); }
+    .match-row-meta .poly-label, .match-row-meta .poly-val { color: var(--polymarket); }
+    .match-row-expand-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .match-row-card.expanded .match-row-expand-content { max-height: 1200px; }
+    .match-row-expand-inner { padding: 0 16px 16px 42px; border-top: 1px solid var(--border); background: var(--bg); }
+    .match-row-expand-inner .expand-comparison-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 10px; }
+    .match-row-expand-inner .comparison-table { font-size: 12px; margin-bottom: 12px; }
+    .match-row-expand-inner .comparison-table th { padding: 6px 8px; }
+    .match-row-expand-inner .comparison-table td { padding: 6px 8px; }
+    .match-row-expand-inner .plain-reasoning { padding: 10px 0; font-size: 13px; }
+    .match-row-expand-inner .plain-reasoning h4 { font-size: 12px; margin-bottom: 6px; }
+    .main-contract-btn { margin-top: 12px; padding: 10px 16px; background: var(--kalshi); color: var(--bg); border: none; border-radius: 6px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 12px; cursor: pointer; display: block; width: 100%; }
+    .main-contract-btn:hover { opacity: 0.9; }
+    .expand-loading { padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    .expand-loading .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--kalshi); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .delta-gray { color: var(--text-muted); }
+    .delta-yellow { color: var(--warning); }
+    .delta-green { color: var(--success); }
+    .best-delta-badge { background: rgba(212, 175, 55, 0.25); color: #d4af37; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px; }
+    /* Order size slider */
+    .order-slider-wrap { margin-top: 10px; }
+    .order-slider-wrap input[type="range"] { width: 100%; margin: 8px 0; accent-color: var(--kalshi); }
+    .slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .slider-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .slider-preset { padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
+    .slider-preset:hover { border-color: var(--kalshi); color: var(--kalshi); }
+    /* Execution quality grades */
+    .grade-a { color: var(--success); }
+    .grade-b { color: #d4af37; }
+    .grade-c { color: var(--warning); }
+    .grade-d { color: #e57373; }
+    /* Utilization bar */
+    .util-bar { display: inline-flex; align-items: center; gap: 8px; width: 100%; max-width: 200px; }
+    .util-bar-fill { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; flex: 1; }
+    .util-bar-fill div { height: 100%; border-radius: 4px; transition: width 0.2s; }
+    .util-bar-fill.green div { background: var(--success); }
+    .util-bar-fill.yellow div { background: var(--warning); }
+    .util-bar-fill.red div { background: #e57373; }
+    /* Confidence breakdown */
+    .confidence-breakdown { margin-bottom: 16px; }
+    .confidence-breakdown .breakdown-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; }
+    .confidence-breakdown .breakdown-label { width: 140px; color: var(--text-muted); }
+    .confidence-breakdown .breakdown-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; max-width: 120px; }
+    .confidence-breakdown .breakdown-pct { width: 36px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    /* Timestamp & refresh */
+    .timestamp-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 12px; color: var(--text-muted); }
+    .timestamp-row.stale-warn { color: var(--warning); }
+    .timestamp-row.stale-danger { color: #e57373; }
+    .refresh-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .refresh-btn:hover { border-color: var(--kalshi); color: var(--kalshi); }
+    .auto-refresh-wrap { margin-top: 8px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+    /* Copy JSON & API section */
+    .copy-json-btn { padding: 6px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 12px; cursor: pointer; }
+    .copy-json-btn:hover { border-color: var(--kalshi); color: var(--kalshi); }
+    .api-section { margin-top: 24px; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+    .api-section h4 { font-size: 13px; margin-bottom: 10px; }
+    .api-section code { font-size: 12px; color: var(--text-muted); word-break: break-all; }
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--success); border-radius: 8px; color: var(--success); font-size: 13px; z-index: 1000; animation: fadeIn 0.2s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Demo mode */
+    .demo-banner { background: linear-gradient(90deg, rgba(245,158,11,0.2), transparent); border: 1px solid #F59E0B; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #F59E0B; }
+    .demo-queries { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .demo-query-chip { padding: 4px 10px; background: rgba(245,158,11,0.15); border: 1px solid #F59E0B; border-radius: 4px; font-size: 12px; color: #F59E0B; cursor: pointer; }
+    .demo-query-chip:hover { background: rgba(245,158,11,0.3); }
+    .demo-btn { padding: 4px 10px; background: rgba(245,158,11,0.2); border: 1px solid #F59E0B; border-radius: 4px; font-size: 11px; color: #F59E0B; cursor: pointer; }
+    .crossover-warn { margin-top: 8px; padding: 8px 12px; background: rgba(240,173,78,0.15); border-radius: 6px; font-size: 12px; color: var(--warning); }
   </style>
 </head>
 <body>
@@ -370,9 +521,36 @@
       </div>
       <div>
         <label for="orderSize">Order size ($)</label>
-        <input type="number" id="orderSize" value="100" min="0" step="1">
+        <input type="number" id="orderSize" value="100" min="10" max="50000" step="10">
+        <div class="order-slider-wrap">
+          <input type="range" id="orderSlider" min="10" max="50000" value="100" step="10">
+          <div class="slider-labels"><span>$10</span><span>$50,000</span></div>
+          <div class="slider-presets" id="sliderPresets">
+            <button type="button" class="slider-preset" data-size="100">$100</button>
+            <button type="button" class="slider-preset" data-size="500">$500</button>
+            <button type="button" class="slider-preset" data-size="1000">$1,000</button>
+            <button type="button" class="slider-preset" data-size="5000">$5,000</button>
+            <button type="button" class="slider-preset" data-size="10000">$10,000</button>
+          </div>
+        </div>
       </div>
       <button class="btn" id="searchBtn">Find Best Venue</button>
+      <div class="auto-refresh-wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="autoRefreshToggle"> Auto-refresh (60s)
+        </label>
+        <span id="autoRefreshCountdown" style="font-size:11px;color:var(--text-muted);"></span>
+      </div>
+      <div style="margin-top:8px;">
+        <button type="button" class="demo-btn" id="demoModeBtn">Demo</button>
+        <div id="demoQueriesWrap" class="demo-queries" style="display:none;">
+          <span class="demo-query-chip" data-q="2028 presidential elections">2028 elections</span>
+          <span class="demo-query-chip" data-q="bitcoin price end of year">Bitcoin EOY</span>
+          <span class="demo-query-chip" data-q="Federal Reserve rate cut">Fed rate cut</span>
+          <span class="demo-query-chip" data-q="NBA championship 2026">NBA 2026</span>
+          <span class="demo-query-chip" data-q="recession 2026">Recession 2026</span>
+        </div>
+      </div>
       <div>
         <label>Quick queries</label>
         <div class="chips" id="chips">
@@ -423,6 +601,8 @@
 
   <script>
     const API = '/api/equinox';
+    const CACHE_TTL_MS = 5 * 60 * 1000;
+    const cache = {};
     const healthDot = document.getElementById('healthDot');
     const queryInput = document.getElementById('query');
     const orderSizeInput = document.getElementById('orderSize');
@@ -434,6 +614,38 @@
     const statConfidence = document.getElementById('statConfidence');
     const emptyState = document.getElementById('emptyState');
     const resultsEl = document.getElementById('results');
+
+    function showToast(message) {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }
+
+    const LOADING_STEPS = [
+      { key: 'kalshi', label: 'Searching Kalshi...' },
+      { key: 'poly', label: 'Searching Polymarket...' },
+      { key: 'match', label: 'Matching markets...' },
+      { key: 'score', label: 'Scoring venues...' },
+      { key: 'route', label: 'Finding best route...' },
+    ];
+
+    function showLoadingSteps(activeIndex, candidateText) {
+      let html = '<div class="loading-steps"><h3>Loading</h3>';
+      LOADING_STEPS.forEach((s, i) => {
+        const done = i < activeIndex;
+        const active = i === activeIndex;
+        const cls = done ? 'done' : (active ? 'active' : '');
+        const icon = done ? '✅' : (active ? '⏳' : '🔘');
+        html += `<div class="loading-step ${cls}"><span class="icon">${icon}</span>${s.label}</div>`;
+      });
+      if (candidateText) html += `<div class="candidate-count">${escapeHtml(candidateText)}</div>`;
+      html += '</div>';
+      resultsEl.innerHTML = html;
+    }
 
     async function checkHealth() {
       try {
@@ -448,6 +660,21 @@
     }
     checkHealth();
     setInterval(checkHealth, 30000);
+    setInterval(() => {
+      const textEl = document.getElementById('timestampText');
+      const ts = window._lastResultTimestamp;
+      if (!textEl || !ts) return;
+      const sec = Math.floor((Date.now() - ts) / 1000);
+      let text = 'just now';
+      if (sec >= 60) text = Math.floor(sec / 60) + 'm ago';
+      const row = textEl.closest('.timestamp-row');
+      if (row) {
+        row.classList.remove('stale-warn', 'stale-danger');
+        if (sec >= 600) row.classList.add('stale-danger');
+        else if (sec >= 300) row.classList.add('stale-warn');
+      }
+      textEl.textContent = (sec >= 600) ? ('Last updated: ' + text + ' — ⚠️ Data may be stale — refresh recommended for trading decisions') : ('Last updated: ' + text);
+    }, 15000);
 
     chips.querySelectorAll('.chip').forEach(el => {
       el.addEventListener('click', () => {
@@ -459,16 +686,197 @@
     searchBtn.addEventListener('click', runSearch);
     queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
 
+    resultsEl.addEventListener('click', function(e) {
+      const card = e.target.closest('.match-row-card');
+      if (!card) return;
+      const searchData = lastSearchData;
+      if (!searchData || !searchData.matches) return;
+      const idx = parseInt(card.dataset.matchIndex, 10);
+      const m = searchData.matches[idx];
+      if (!m || !m.market_a || !m.market_b) return;
+
+      if (e.target.closest('.main-contract-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const routeData = window._matchRouteCache[idx];
+        if (!routeData) return;
+        const orderSizeVal = parseFloat(orderSizeInput.value) || 100;
+        renderResults(searchData, routeData, null, lastQuery, orderSizeVal, false);
+        document.getElementById('mainPanel').scrollTop = 0;
+        return;
+      }
+
+      const inner = card.querySelector('.match-row-expand-inner');
+      const indicator = card.querySelector('.expand-indicator');
+      const orderSizeVal = parseFloat(orderSizeInput.value) || 100;
+      const cacheKey = idx + '_' + orderSizeVal;
+
+      const collapseAll = () => {
+        resultsEl.querySelectorAll('.match-row-card.expanded').forEach(c => {
+          c.classList.remove('expanded');
+          const ind = c.querySelector('.expand-indicator');
+          if (ind) ind.textContent = '▶';
+        });
+      };
+
+      if (card.classList.contains('expanded')) {
+        card.classList.remove('expanded');
+        if (indicator) indicator.textContent = '▶';
+        return;
+      }
+
+      collapseAll();
+      card.classList.add('expanded');
+      if (indicator) indicator.textContent = '▼';
+
+      if (window._matchRouteCache[cacheKey]) {
+        const rd = window._matchRouteCache[cacheKey];
+        window._matchRouteCache[idx] = rd;
+        inner.innerHTML = buildExpandedComparisonHtml(rd, orderSizeVal, idx);
+        return;
+      }
+
+      inner.innerHTML = '<div class="expand-loading"><span class="spinner"></span> ⚖️ Analyzing venues...</div>';
+      fetch(API + '/route-by-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ market_a: m.market_a, market_b: m.market_b, order_size: orderSizeVal }),
+      }).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(function(routeData) {
+        window._matchRouteCache[cacheKey] = routeData;
+        window._matchRouteCache[idx] = routeData;
+        inner.innerHTML = buildExpandedComparisonHtml(routeData, orderSizeVal, idx);
+      }).catch(function() {
+        inner.innerHTML = '<div class="expand-loading">Could not load comparison. Try again.</div>';
+      });
+    });
+
+    const orderSlider = document.getElementById('orderSlider');
+    const sliderPresets = document.getElementById('sliderPresets');
+    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+    const demoModeBtn = document.getElementById('demoModeBtn');
+    let lastRouteData = null, lastSearchData = null, lastQuery = null;
+    let autoRefreshTimer = null;
+    window._matchRouteCache = {};
+
+    orderSizeInput.addEventListener('input', () => {
+      const v = Math.min(50000, Math.max(10, parseFloat(orderSizeInput.value) || 100));
+      orderSlider.value = v;
+      orderSizeInput.value = v;
+      recalcAndUpdateDynamic();
+    });
+    orderSlider.addEventListener('input', () => {
+      orderSizeInput.value = orderSlider.value;
+      recalcAndUpdateDynamic();
+    });
+    sliderPresets.querySelectorAll('.slider-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const size = parseInt(btn.dataset.size, 10);
+        orderSizeInput.value = size;
+        orderSlider.value = size;
+        recalcAndUpdateDynamic();
+      });
+    });
+
+    function calculateAllInCost(orderSize, yesPrice, feeRate, feeModel) {
+      if (feeModel === 'additive') return orderSize * (yesPrice + feeRate);
+      return orderSize * yesPrice * (1 + feeRate);
+    }
+    function recalculateSavings(orderSize, winner, loser, winnerAllIn, loserAllIn) {
+      if (!loser) return 0;
+      const wCost = orderSize * (winnerAllIn != null ? winnerAllIn : (winner.yes_price + (winner.fee_model === 'additive' ? winner.fee_rate : winner.yes_price * winner.fee_rate)));
+      const lCost = orderSize * (loserAllIn != null ? loserAllIn : (loser.yes_price + (loser.fee_model === 'additive' ? loser.fee_rate : loser.yes_price * loser.fee_rate)));
+      return Math.max(0, lCost - wCost);
+    }
+    function recalcAndUpdateDynamic() {
+      const dynamicEl = document.getElementById('dynamicSavings');
+      if (!dynamicEl || !lastRouteData) return;
+      const orderSize = parseFloat(orderSizeInput.value) || 100;
+      const winner = lastRouteData.selected_market;
+      const loser = lastRouteData.runner_up_market;
+      const winnerAllIn = lastRouteData.winner_all_in_cost;
+      const loserAllIn = lastRouteData.loser_all_in_cost;
+      if (!loser) {
+        dynamicEl.innerHTML = 'At $' + orderSize.toLocaleString() + ': Single venue — no savings comparison.';
+        return;
+      }
+      const savings = recalculateSavings(orderSize, winner, loser, winnerAllIn, loserAllIn);
+      const winnerCost = orderSize * (winnerAllIn != null ? winnerAllIn : (winner.yes_price + (winner.fee_model === 'additive' ? winner.fee_rate : 0)));
+      const loserCost = orderSize * (loserAllIn != null ? loserAllIn : (loser.yes_price + (loser.fee_model === 'additive' ? loser.fee_rate : 0)));
+      const winnerCheaper = winnerCost <= loserCost;
+      dynamicEl.innerHTML = 'At $' + orderSize.toLocaleString() + ': Save ~$' + savings.toFixed(2) + ' → ' + (winnerCheaper ? winner.venue : loser.venue);
+    }
+
+    autoRefreshToggle.addEventListener('change', () => {
+      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+      if (autoRefreshToggle.checked) {
+        const startRefreshCountdown = () => {
+          let secs = 60;
+          const countdownEl = document.getElementById('autoRefreshCountdown');
+          const id = setInterval(() => {
+            secs--;
+            if (countdownEl) countdownEl.textContent = 'Refreshing in ' + secs + 's';
+            if (secs <= 0) clearInterval(id);
+          }, 1000);
+        };
+        startRefreshCountdown();
+        autoRefreshTimer = setInterval(() => {
+          if (lastQuery && queryInput.value.trim() === lastQuery) {
+            runSearch();
+            startRefreshCountdown();
+          }
+        }, 60000);
+      } else {
+        const countdownEl = document.getElementById('autoRefreshCountdown');
+        if (countdownEl) countdownEl.textContent = '';
+      }
+    });
+    demoModeBtn.addEventListener('click', () => {
+      const on = document.body.classList.toggle('demo-mode');
+      const wrap = document.getElementById('demoQueriesWrap');
+      if (wrap) wrap.style.display = on ? 'flex' : 'none';
+      if (on) {
+        queryInput.value = '2028 presidential elections';
+        runSearch();
+      }
+    });
+    document.getElementById('demoQueriesWrap')?.addEventListener('click', (e) => {
+      const chip = e.target.closest('.demo-query-chip');
+      if (chip && chip.dataset.q) {
+        queryInput.value = chip.dataset.q;
+        runSearch();
+      }
+    });
+
     async function runSearch() {
       const query = queryInput.value.trim();
       const orderSize = parseFloat(orderSizeInput.value) || 100;
       if (!query) return;
 
+      const cacheKey = `${query}_${orderSize}`;
+      if (cache[cacheKey] && (Date.now() - cache[cacheKey].timestamp) < CACHE_TTL_MS) {
+        searchBtn.disabled = true;
+        emptyState.style.display = 'none';
+        resultsEl.style.display = 'block';
+        renderResults(cache[cacheKey].searchData, cache[cacheKey].routeData, cache[cacheKey].routeError, query, orderSize, true);
+        statKalshi.textContent = cache[cacheKey].searchData ? String(cache[cacheKey].searchData.total_kalshi ?? '—') : '—';
+        statPolymarket.textContent = cache[cacheKey].searchData ? String(cache[cacheKey].searchData.total_polymarket ?? '—') : '—';
+        statMatches.textContent = cache[cacheKey].searchData ? String(cache[cacheKey].searchData.total_matches ?? '—') : '—';
+        statConfidence.textContent = (cache[cacheKey].routeData && typeof cache[cacheKey].routeData.score === 'number') ? Math.round(cache[cacheKey].routeData.score * 100) + '%' : '—';
+        searchBtn.disabled = false;
+        return;
+      }
+
       searchBtn.disabled = true;
       statConfidence.textContent = '—';
       emptyState.style.display = 'none';
       resultsEl.style.display = 'block';
-      resultsEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      let stepIndex = 0;
+      showLoadingSteps(stepIndex, '');
+      const stepInterval = setInterval(() => {
+        stepIndex = Math.min(stepIndex + 1, LOADING_STEPS.length);
+        const candidateText = stepIndex >= 2 ? 'Found ' + (window._lastCandidateCount || 0) + ' candidate markets' : '';
+        showLoadingSteps(stepIndex, stepIndex >= 2 ? candidateText : '');
+      }, 800);
 
       const searchUrl = `${API}/search?query=${encodeURIComponent(query)}`;
       const routeUrl = `${API}/route?query=${encodeURIComponent(query)}&order_size=${orderSize}`;
@@ -484,6 +892,7 @@
         ]);
 
         searchData = searchRes.ok ? await searchRes.json() : null;
+        if (searchData) window._lastCandidateCount = (searchData.total_kalshi || 0) + (searchData.total_polymarket || 0);
         if (!routeRes.ok) {
           routeError = routeRes.status;
           try {
@@ -495,6 +904,19 @@
         }
       } catch (e) {
         routeError = e.message;
+      } finally {
+        clearInterval(stepInterval);
+      }
+
+      const candidateCount = searchData ? ((searchData.total_kalshi || 0) + (searchData.total_polymarket || 0)) : 0;
+      if (searchData) window._lastCandidateCount = candidateCount;
+      showLoadingSteps(LOADING_STEPS.length, candidateCount ? 'Found ' + candidateCount + ' candidate markets' : '');
+
+      window._matchRouteCache = {};
+      cache[cacheKey] = { searchData, routeData, routeError, timestamp: Date.now() };
+      while (Object.keys(cache).length > 20) {
+        const oldest = Object.keys(cache).reduce((a, k) => cache[k].timestamp < cache[a].timestamp ? k : a);
+        delete cache[oldest];
       }
 
       statKalshi.textContent = searchData ? String(searchData.total_kalshi ?? '—') : '—';
@@ -507,7 +929,7 @@
         statConfidence.textContent = '—';
       }
 
-      renderResults(searchData, routeData, routeError, query);
+      renderResults(searchData, routeData, routeError, query, orderSize, false);
       searchBtn.disabled = false;
     }
 
@@ -520,11 +942,35 @@
       return null;
     }
 
-    function getLoserAlternative(route) {
+    function getLoserMarket(route) {
+      if (route && route.runner_up_market) return route.runner_up_market;
       if (!route || !route.alternatives) return null;
       const crossVenue = route.alternatives.filter(a => a.venue !== route.selected_venue);
       if (crossVenue.length === 0) return null;
-      return crossVenue.reduce((best, a) => (a.final_score > (best?.final_score ?? -1) ? a : best), null);
+      const best = crossVenue.reduce((b, a) => (a.final_score > (b?.final_score ?? -1) ? a : b), null);
+      return best;
+    }
+
+    function buildPlainReasoning(route, orderSize) {
+      const winner = route.selected_market;
+      const loser = route.runner_up_market;
+      const winnerVenue = winner.venue || 'Winner';
+      const loserVenue = loser ? (loser.venue || 'Other') : 'Other venue';
+      const priceDiff = route.price_divergence != null ? route.price_divergence * 100 : 0;
+      const winnerAllIn = route.winner_all_in_cost != null ? route.winner_all_in_cost : (winner.yes_price + (winner.fee_model === 'additive' ? winner.fee_rate : winner.yes_price * winner.fee_rate));
+      const loserAllIn = loser && route.loser_all_in_cost != null ? route.loser_all_in_cost : (loser ? (loser.yes_price + (loser.fee_model === 'additive' ? loser.fee_rate : loser.yes_price * loser.fee_rate)) : 0);
+      const savings = (route.estimated_savings != null ? route.estimated_savings : (loser ? Math.max(0, orderSize * (loserAllIn - winnerAllIn)) : 0));
+      const priceText = priceDiff === 0
+        ? 'Both platforms have the same price for this contract.'
+        : `${winnerVenue} has a better price (${priceDiff.toFixed(1)}¢ difference).`;
+      let feeText = `We picked ${winnerVenue} for this market.`;
+      if (loser && route.winner_all_in_cost != null && route.loser_all_in_cost != null) {
+        feeText = `${winnerVenue}'s all-in cost (${(route.winner_all_in_cost * 100).toFixed(2)}¢) is lower than ${loserVenue}'s (${(route.loser_all_in_cost * 100).toFixed(2)}¢) at this price level.`;
+      } else if (loser) {
+        feeText = `${winnerVenue}'s all-in cost is lower than ${loserVenue}'s at this price level.`;
+      }
+      const savingsText = savings > 0 ? ` Estimated savings: ~$${savings.toFixed(2)} on your $${orderSize} order.` : '';
+      return priceText + ' ' + feeText + savingsText;
     }
 
     function confidenceLabel(score) {
@@ -536,130 +982,258 @@
 
     function verdictText(route) {
       if (!route) return '';
-      const div = route.price_divergence;
       const hasCrossVenue = route.alternatives && route.alternatives.some(a => a.venue !== route.selected_venue);
-      if (div != null && div > 0.10) {
-        return `Potential arbitrage: ${(div * 100).toFixed(1)}¢ price gap between venues. Verify match quality before acting.`;
-      }
-      if (hasCrossVenue && (div == null || div <= 0.10)) {
+      if (hasCrossVenue) {
         return 'Prices near-identical, selected for liquidity.';
       }
       return 'Only venue carrying this market.';
     }
 
-    function renderResults(searchData, routeData, routeError, query) {
+    function formatLiquidity(liq) {
+      if (liq == null || liq === 0) return 'No liquidity data';
+      return '$' + formatNum(liq);
+    }
+
+    function buildExpandedComparisonHtml(routeData, orderSize, matchIndex) {
+      const loserMarket = getLoserMarket(routeData);
+      const sm = routeData.selected_market;
+      const winnerVenue = (sm && sm.venue) || 'Winner';
+      const loserVenue = loserMarket ? (loserMarket.venue || 'Other') : 'Other';
+      const venueColor = winnerVenue.toLowerCase() === 'kalshi' ? 'kalshi' : 'polymarket';
+      const winnerColClass = venueColor === 'kalshi' ? 'col-kalshi-header' : 'col-polymarket-header';
+      const loserColClass = loserMarket && loserMarket.venue && loserMarket.venue.toLowerCase() === 'kalshi' ? 'col-kalshi-header' : 'col-polymarket-header';
+      const winnerCellClass = venueColor === 'kalshi' ? 'col-kalshi' : 'col-polymarket';
+      const loserCellClass = loserMarket && loserMarket.venue && loserMarket.venue.toLowerCase() === 'kalshi' ? 'col-kalshi' : 'col-polymarket';
+      let html = '<div class="expand-comparison-title">▼ Venue comparison</div>';
+      html += '<table class="comparison-table"><thead><tr><th></th><th class="' + winnerColClass + '">🟢 ' + escapeHtml(winnerVenue.toUpperCase()) + ' <span class="recommended">✓ Recommended</span></th><th class="' + loserColClass + '">' + escapeHtml(loserVenue.toUpperCase()) + '</th></tr></thead><tbody>';
+      const row = (label, wVal, lVal) => {
+        html += '<tr><th>' + escapeHtml(label) + '</th><td class="' + winnerCellClass + '">' + escapeHtml(String(wVal ?? '—')) + '</td><td class="' + loserCellClass + '">' + escapeHtml(String(lVal ?? '—')) + '</td></tr>';
+      };
+      if (loserMarket) {
+        row('Yes Price', formatYesPrice(sm.yes_price), formatYesPrice(loserMarket.yes_price));
+        row('Liquidity', formatLiquidity(sm.liquidity), formatLiquidity(loserMarket.liquidity));
+        const winnerAllIn = routeData.winner_all_in_cost != null ? (routeData.winner_all_in_cost * 100).toFixed(2) + '¢' : '—';
+        const loserAllIn = routeData.loser_all_in_cost != null ? (routeData.loser_all_in_cost * 100).toFixed(2) + '¢' : '—';
+        row('All-in cost', winnerAllIn, loserAllIn);
+        row('Fee rate', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, (loserMarket.fee_rate * 100).toFixed(2) + '% ' + loserMarket.fee_model);
+        const winGrade = routeData.winner_execution_quality || '—';
+        const loseGrade = routeData.loser_execution_quality || '—';
+        row('Execution quality', winGrade, loseGrade);
+      }
+      html += '</tbody></table>';
+      html += '<div class="plain-reasoning"><h4>💡 Why ' + escapeHtml(winnerVenue) + '?</h4><p>' + escapeHtml(buildPlainReasoning(routeData, orderSize)) + '</p></div>';
+      html += '<button type="button" class="main-contract-btn" data-match-index="' + matchIndex + '">Make This My Main Contract</button>';
+      return html;
+    }
+
+    function renderResults(searchData, routeData, routeError, query, orderSize, fromCache) {
+      orderSize = orderSize != null ? orderSize : (parseFloat(orderSizeInput.value) || 100);
+      lastRouteData = routeData || null;
+      lastSearchData = searchData || null;
+      lastQuery = query || null;
       let html = '';
+      if (document.body.classList.contains('demo-mode')) html += '<div class="demo-banner">Perfect for demo</div>';
+      if (fromCache) html += '<div class="cached-badge">Cached result</div>';
+      if (searchData && (searchData.kalshi_error || searchData.polymarket_error)) {
+        html += '<div class="verdict-banner low">';
+        if (searchData.kalshi_error) html += '⚠️ Kalshi: ' + escapeHtml(searchData.kalshi_error) + '. ';
+        if (searchData.polymarket_error) html += '⚠️ Polymarket: ' + escapeHtml(searchData.polymarket_error) + '. ';
+        html += 'Showing partial results.</div>';
+      }
 
       if (routeData) {
         const totalMatches = searchData?.total_matches ?? 0;
         const noCrossVenueMatch = totalMatches === 0;
-        const loser = getLoserAlternative(routeData);
-        const loserMarket = loser ? findMarketById(searchData?.matches, loser.id) : null;
+        const loserMarket = getLoserMarket(routeData);
+        const loser = routeData.runner_up_market || (routeData.alternatives && routeData.alternatives[0]);
         const sm = routeData.selected_market;
-        const venueColor = sm.venue.toLowerCase() === 'kalshi' ? 'kalshi' : 'polymarket';
+        const winnerVenue = sm.venue || 'Winner';
+        const loserVenue = loserMarket ? (loserMarket.venue || loser?.venue) : (loser?.venue || 'Other');
+        const venueColor = winnerVenue.toLowerCase() === 'kalshi' ? 'kalshi' : 'polymarket';
+
+        const savings = (routeData.estimated_savings != null ? routeData.estimated_savings : null);
+        const verdictHigh = routeData.score >= 0.7;
+        const verdictMsg = winnerVenue + (savings != null && savings > 0 ? ` — save ~$${savings.toFixed(2)}` : '') + ' on fees for this $' + orderSize + ' order';
 
         html += '<div class="card">';
         html += '<div class="card-header">';
         html += '<span class="card-title">Routing Decision</span>';
+        html += ' <button type="button" class="copy-json-btn" id="copyJsonBtn">Copy JSON</button>';
         if (noCrossVenueMatch) html += '<span class="badge" style="background:rgba(139,148,158,0.2);color:var(--text-muted)">No cross-venue match</span>';
         html += '<span class="badge badge-sim">⚡ Simulation</span>';
-        html += `<span class="badge badge-${venueColor}">${sm.venue.toUpperCase()}</span>`;
+        html += `<span class="badge badge-${venueColor}">${winnerVenue.toUpperCase()}</span>`;
         html += '</div>';
+        window._lastResultTimestamp = Date.now();
+        html += '<div class="timestamp-row" id="timestampRow"><span id="timestampText">Last updated: just now</span> <button type="button" class="refresh-btn" id="refreshBtn">↻ Refresh</button></div>';
+
+        html += '<div class="verdict-banner ' + (verdictHigh ? 'high' : 'low') + ' venue-' + venueColor + '">';
+        html += '✅ Route to ' + escapeHtml(verdictMsg);
+        html += '</div>';
+
         html += `<div class="market-title">${escapeHtml(sm.title)}</div>`;
-        html += `<div class="verdict ${routeData.price_divergence > 0.10 ? 'arb' : ''}">${escapeHtml(verdictText(routeData))}</div>`;
-        html += '<div class="confidence-bar-wrap">';
-        html += `<div class="confidence-label">${confidenceLabel(routeData.score)} (${Math.round(routeData.score * 100)}%)</div>`;
-        html += '<div class="confidence-bar"><div class="confidence-fill" style="width:' + (routeData.score * 100) + '%"></div></div>';
+        html += '<div id="dynamicSavings" class="verdict" style="margin-top:8px;">';
+        html += (savings != null && savings > 0) ? ('At $' + orderSize + ': Save ~$' + savings.toFixed(2) + ' → ' + winnerVenue) : '';
+        html += '</div>';
+
+        html += '<div class="plain-reasoning">';
+        html += '<h4>💡 Why ' + escapeHtml(winnerVenue) + '?</h4>';
+        html += '<p>' + escapeHtml(buildPlainReasoning(routeData, orderSize)) + '</p>';
+        html += '</div>';
+
+        html += '<div class="confidence-bar-wrap confidence-breakdown">';
+        html += '<div class="confidence-label">Confidence breakdown <span class="confidence-tooltip" title="Confidence reflects how clearly one venue outperforms. 100% = clear winner. 50% = very close call.">?</span></div>';
+        const br = routeData.confidence_breakdown || {};
+        const breakdownRows = [
+          { key: 'price_signal', label: 'Price signal', tip: 'How different the prices are between venues' },
+          { key: 'fee_advantage', label: 'Fee advantage', tip: 'How much cheaper the winner\'s fees are' },
+          { key: 'liquidity_score', label: 'Liquidity score', tip: 'How much liquidity is available relative to order size' },
+          { key: 'execution_score', label: 'Execution score', tip: 'Bid-ask spread width and fill quality estimate' },
+        ];
+        const barColor = venueColor === 'kalshi' ? 'var(--kalshi)' : 'var(--polymarket)';
+        breakdownRows.forEach(r => {
+          const pct = Math.round((br[r.key] != null ? br[r.key] : 0.5) * 100);
+          html += '<div class="breakdown-row" title="' + escapeHtml(r.tip) + '"><span class="breakdown-label">' + escapeHtml(r.label) + '</span><span class="breakdown-bar"><span style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:3px;display:block;"></span></span><span class="breakdown-pct">' + pct + '%</span></div>';
+        });
+        const overallVal = (br.overall != null ? br.overall : routeData.score) ?? 0;
+        const overallPct = Math.round(overallVal * 100);
+        html += '<div class="breakdown-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);"><span class="breakdown-label">Overall</span><span class="breakdown-bar"><span style="width:' + overallPct + '%;height:100%;background:' + barColor + ';border-radius:3px;display:block;"></span></span><span class="breakdown-pct">' + overallPct + '%</span></div>';
         html += '</div>';
 
         html += '<table class="comparison-table">';
-        html += '<thead><tr><th></th><th>Winner</th><th>Other venue</th></tr></thead><tbody>';
-        const winnerBorder = venueColor === 'kalshi' ? 'col-winner' : 'col-winner venue-polymarket';
-        const loserBorder = loser ? (loser.venue.toLowerCase() === 'kalshi' ? 'col-winner' : 'col-winner venue-polymarket') : '';
-        const loserDisplay = loserMarket || loser;
+        const winnerColClass = venueColor === 'kalshi' ? 'col-winner col-kalshi-header' : 'col-winner col-polymarket-header';
+        const loserColClass = (loserMarket && loserMarket.venue?.toLowerCase() === 'kalshi') ? 'col-kalshi-header' : 'col-polymarket-header';
+        html += '<thead><tr><th></th><th class="' + winnerColClass + '">🟢 ' + escapeHtml(winnerVenue.toUpperCase()) + '<span class="recommended">✓ Recommended</span></th><th class="' + loserColClass + '">' + escapeHtml((loserVenue || 'Other').toUpperCase()) + '</th></tr></thead><tbody>';
+        const winnerBorder = venueColor === 'kalshi' ? 'col-winner col-kalshi' : 'col-winner col-polymarket';
+        const loserBorder = (loserMarket && loserMarket.venue?.toLowerCase() === 'kalshi') ? 'col-kalshi' : 'col-polymarket';
 
         const row = (label, winnerVal, loserVal) => {
-          html += '<tr>';
-          html += `<th>${escapeHtml(label)}</th>`;
-          html += `<td class="${winnerBorder}">${escapeHtml(String(winnerVal ?? '—'))}</td>`;
-          html += `<td class="${loserBorder}">${escapeHtml(String(loserVal ?? '—'))}</td>`;
-          html += '</tr>';
+          html += '<tr><th>' + escapeHtml(label) + '</th>';
+          html += '<td class="' + winnerBorder + '">' + escapeHtml(String(winnerVal ?? '—')) + '</td>';
+          html += '<td class="' + loserBorder + '">' + escapeHtml(String(loserVal ?? '—')) + '</td></tr>';
         };
 
         if (loserMarket) {
           row('Yes Price', formatYesPrice(sm.yes_price), formatYesPrice(loserMarket.yes_price));
-          row('Liquidity', '$' + formatNum(sm.liquidity), '$' + formatNum(loserMarket.liquidity));
+          row('Liquidity', formatLiquidity(sm.liquidity), formatLiquidity(loserMarket.liquidity));
+          const winnerAllIn = routeData.winner_all_in_cost != null ? (routeData.winner_all_in_cost * 100).toFixed(2) + '¢' : '—';
+          const loserAllIn = routeData.loser_all_in_cost != null ? (routeData.loser_all_in_cost * 100).toFixed(2) + '¢' : '—';
+          row('All-in cost', winnerAllIn, loserAllIn);
           row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, (loserMarket.fee_rate * 100).toFixed(2) + '% ' + loserMarket.fee_model);
           row('Price Source', sm.price_source, loserMarket.price_source);
-        } else if (loser) {
-          row('Yes Price', formatYesPrice(sm.yes_price), '—');
-          row('Liquidity', '$' + formatNum(sm.liquidity), '—');
-          row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, '—');
-          row('Price Source', sm.price_source, '—');
+          const winGrade = routeData.winner_execution_quality || '—';
+          const loseGrade = routeData.loser_execution_quality || '—';
+          const winGradeClass = winGrade.startsWith('A') ? 'grade-a' : (winGrade.startsWith('B') ? 'grade-b' : (winGrade === 'C' ? 'grade-c' : (winGrade === 'D' ? 'grade-d' : '')));
+          const loseGradeClass = loseGrade.startsWith('A') ? 'grade-a' : (loseGrade.startsWith('B') ? 'grade-b' : (loseGrade === 'C' ? 'grade-c' : (loseGrade === 'D' ? 'grade-d' : '')));
+          html += '<tr><th>Execution quality</th><td class="' + winnerBorder + '"><span class="' + winGradeClass + '">' + escapeHtml(String(winGrade)) + '</span></td><td class="' + loserBorder + '"><span class="' + loseGradeClass + '">' + escapeHtml(String(loseGrade)) + '</span></td></tr>';
+          const winLiq = sm.liquidity && sm.liquidity > 0 ? sm.liquidity : 1;
+          const loseLiq = loserMarket.liquidity && loserMarket.liquidity > 0 ? loserMarket.liquidity : 1;
+          const winUtilPct = (orderSize / winLiq) * 100;
+          const loseUtilPct = (orderSize / loseLiq) * 100;
+          const winUtilClass = winUtilPct < 5 ? 'green' : (winUtilPct < 15 ? 'yellow' : 'red');
+          const loseUtilClass = loseUtilPct < 5 ? 'green' : (loseUtilPct < 15 ? 'yellow' : 'red');
+          const winBarPct = Math.min(100, winUtilPct * 5);
+          const loseBarPct = Math.min(100, loseUtilPct * 5);
+          html += '<tr><th>Order utilization</th><td class="' + winnerBorder + '">' + winUtilPct.toFixed(1) + '% <span class="util-bar"><span class="util-bar-fill ' + winUtilClass + '"><div style="width:' + winBarPct + '%"></div></span></span></td><td class="' + loserBorder + '">' + loseUtilPct.toFixed(1) + '% <span class="util-bar"><span class="util-bar-fill ' + loseUtilClass + '"><div style="width:' + loseBarPct + '%"></div></span></span></td></tr>';
+          if (savings != null || routeData.estimated_savings_text) {
+            const savingsDisplay = (routeData.estimated_savings_text && routeData.estimated_savings_text !== '—') ? escapeHtml(routeData.estimated_savings_text) : (savings != null && savings > 0 ? 'Save ~$' + savings.toFixed(2) : '—');
+            html += '<tr><th>Estimated Savings</th><td class="' + winnerBorder + '">—</td><td class="' + loserBorder + ' savings-cell"><span class="savings-val">' + savingsDisplay + '</span></td></tr>';
+          }
         } else {
-          row('Yes Price', formatYesPrice(sm.yes_price), 'No equivalent market found on other venue');
-          row('Liquidity', '$' + formatNum(sm.liquidity), '—');
+          row('Yes Price', formatYesPrice(sm.yes_price), loser ? '—' : 'No equivalent market found on other venue');
+          row('Liquidity', formatLiquidity(sm.liquidity), '—');
           row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, '—');
           row('Price Source', sm.price_source, '—');
         }
         html += '</tbody></table>';
 
-        html += '<button class="toggle-reasoning" data-expanded="false" onclick="var d=this.nextElementSibling;var on=d.style.display!==\'none\';d.style.display=on?\'none\':\'block\';this.textContent=on?\'Show full reasoning\':\'Hide full reasoning\';this.dataset.expanded=on?\'false\':\'true\'">Show full reasoning</button>';
+        html += '<button class="toggle-reasoning" data-expanded="false">Show full reasoning ▼</button>';
         html += '<div class="reasoning-text" style="display:none">' + escapeHtml(routeData.reasoning || '') + '</div>';
+        html += '<div class="api-section"><h4>📡 API Access</h4><code>GET /api/route?q=' + encodeURIComponent(query) + '&size=' + orderSize + '</code><br><button type="button" class="copy-json-btn" id="copyApiEndpointBtn" style="margin-top:8px">Copy endpoint</button></div>';
         html += '</div>';
       } else if (routeError) {
-        html += '<div class="card">';
-        html += '<div class="verdict arb">Route failed: ' + escapeHtml(String(routeError)) + '</div>';
-        html += '</div>';
+        html += '<div class="card"><div class="verdict arb">Route failed: ' + escapeHtml(String(routeError)) + '</div></div>';
       }
 
       const totalMatches = searchData?.total_matches ?? 0;
       html += '<div class="section-header"><h2>Cross-Venue Matches</h2><span class="match-badge">' + totalMatches + ' match' + (totalMatches === 1 ? '' : 'es') + '</span></div>';
 
       if (totalMatches === 0) {
-        html += '<div class="no-matches-card">';
-        html += '<strong>No equivalent markets found across venues</strong> for this query. ';
-        html += 'Kalshi and Polymarket may not both list markets for "' + escapeHtml(query) + '". ';
-        html += 'Try a broader search term or a different topic.';
-        html += '</div>';
+        html += '<div class="no-matches-card"><strong>No equivalent markets found across venues</strong> for this query. ';
+        html += 'Kalshi and Polymarket may not both list markets for "' + escapeHtml(query) + '". Try a broader search term or a different topic.</div>';
       } else {
-        html += '<table class="matches-table"><thead><tr>';
-        html += '<th class="match-cell">Kalshi</th>';
-        html += '<th class="match-mid">Match</th>';
-        html += '<th class="match-cell">Polymarket</th>';
-        html += '</tr></thead><tbody>';
-
-        for (const m of searchData.matches) {
+        const deltas = searchData.matches.map(m => {
           const ka = m.market_a?.venue?.toLowerCase() === 'kalshi' ? m.market_a : m.market_b;
           const pm = m.market_a?.venue?.toLowerCase() === 'polymarket' ? m.market_a : m.market_b;
-          const delta = ka && pm ? Math.abs(ka.yes_price - pm.yes_price) : 0;
-          const arbRow = delta > 0.10 ? ' arb-flag' : '';
+          return ka && pm ? Math.abs(ka.yes_price - pm.yes_price) * 100 : 0;
+        });
+        const maxDelta = Math.max(...deltas, 0);
 
-          html += '<tr' + arbRow + '>';
-          html += '<td class="match-cell">';
-          if (ka) {
-            html += '<div>' + escapeHtml(ka.title) + '</div>';
-            html += '<div class="price">' + formatYesPrice(ka.yes_price) + '</div>';
-          } else html += '—';
-          html += '</td>';
-          html += '<td class="match-mid">';
-          html += '<div>' + Math.round((m.score || 0) * 100) + '%</div>';
-          html += '<div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(m.method || '') + '</div>';
-          html += '<div class="price">Δ ' + (delta * 100).toFixed(1) + '¢</div>';
-          if (delta > 0.10) html += '<div style="font-size:11px;color:var(--warning)">Potential arbitrage</div>';
-          html += '</td>';
-          html += '<td class="match-cell">';
-          if (pm) {
-            html += '<div>' + escapeHtml(pm.title) + '</div>';
-            html += '<div class="price">' + formatYesPrice(pm.yes_price) + '</div>';
-          } else html += '—';
-          html += '</td>';
-          html += '</tr>';
-        }
-        html += '</tbody></table>';
+        searchData.matches.forEach((m, idx) => {
+          const ka = m.market_a?.venue?.toLowerCase() === 'kalshi' ? m.market_a : m.market_b;
+          const pm = m.market_a?.venue?.toLowerCase() === 'polymarket' ? m.market_a : m.market_b;
+          const deltaC = ka && pm ? Math.abs(ka.yes_price - pm.yes_price) * 100 : 0;
+          const deltaClass = deltaC >= 0.4 ? 'delta-green' : (deltaC >= 0.1 ? 'delta-yellow' : 'delta-gray');
+          const isBest = deltaC >= 0.4 && Math.abs(deltaC - maxDelta) < 0.01;
+          const title = (ka?.title || pm?.title || 'Match') + (idx === 0 ? '' : '');
+          html += '<div class="match-row-card' + (isBest ? ' best-delta' : '') + '" data-match-index="' + idx + '">';
+          html += '<div class="match-row-header">';
+          html += '<span class="expand-indicator">▶</span>';
+          html += '<div><div class="match-row-title">' + escapeHtml(title) + '</div>';
+          html += '<div class="match-row-meta">';
+          html += '<span class="kalshi-label">Kalshi:</span> <span class="kalshi-val">' + (ka ? formatYesPrice(ka.yes_price) : '—') + '</span> &nbsp; ' + Math.round((m.score || 0) * 100) + '% match &nbsp; <span class="poly-label">Poly:</span> <span class="poly-val">' + (pm ? formatYesPrice(pm.yes_price) : '—') + '</span>';
+          html += ' &nbsp; <span class="price ' + deltaClass + '">Δ ' + deltaC.toFixed(1) + '¢</span>';
+          if (isBest) html += '<span class="best-delta-badge">Best Δ</span>';
+          html += '</div></div></div>';
+          html += '<div class="match-row-expand-content"><div class="match-row-expand-inner"></div></div>';
+          html += '</div>';
+        });
       }
 
       resultsEl.innerHTML = html;
+
+      resultsEl.querySelectorAll('.toggle-reasoning').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const d = this.nextElementSibling;
+          const on = d.style.display === 'block';
+          d.style.display = on ? 'none' : 'block';
+          this.textContent = on ? 'Show full reasoning ▼' : 'Hide full reasoning';
+        });
+      });
+
+      const copyJsonBtn = resultsEl.querySelector('#copyJsonBtn');
+      if (copyJsonBtn && lastRouteData) {
+        copyJsonBtn.addEventListener('click', () => {
+          const orderSize = parseFloat(orderSizeInput.value) || 100;
+          const win = lastRouteData.selected_market;
+          const lose = lastRouteData.runner_up_market || {};
+          const exportObj = {
+            query: lastQuery,
+            order_size: orderSize,
+            timestamp: new Date().toISOString(),
+            recommended_venue: lastRouteData.selected_venue,
+            confidence: lastRouteData.score,
+            winner: { venue: win.venue, yes_price: win.yes_price, liquidity: win.liquidity, fee_rate: win.fee_rate, fee_model: win.fee_model, all_in_cost: lastRouteData.winner_all_in_cost, execution_quality: lastRouteData.winner_execution_quality },
+            loser: lose.venue ? { venue: lose.venue, yes_price: lose.yes_price, liquidity: lose.liquidity, fee_rate: lose.fee_rate, fee_model: lose.fee_model, all_in_cost: lastRouteData.loser_all_in_cost, execution_quality: lastRouteData.loser_execution_quality } : null,
+            estimated_savings: lastRouteData.estimated_savings,
+            estimated_savings_text: lastRouteData.estimated_savings_text,
+          };
+          navigator.clipboard.writeText(JSON.stringify(exportObj, null, 2)).then(() => showToast('Copied to clipboard ✓'));
+        });
+      }
+      const refreshBtn = resultsEl.querySelector('#refreshBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => { if (lastQuery) { queryInput.value = lastQuery; runSearch(); } });
+      }
+      const copyApiEndpointBtn = resultsEl.querySelector('#copyApiEndpointBtn');
+      if (copyApiEndpointBtn) {
+        copyApiEndpointBtn.addEventListener('click', () => {
+          const q = encodeURIComponent(lastQuery || '');
+          const size = parseFloat(orderSizeInput.value) || 100;
+          navigator.clipboard.writeText(window.location.origin + '/api/route?q=' + q + '&size=' + size).then(() => showToast('Endpoint copied ✓'));
+        });
+      }
+
+      if (routeData) recalcAndUpdateDynamic();
     }
 
     function escapeHtml(s) {

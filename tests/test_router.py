@@ -126,3 +126,15 @@ def test_price_divergence_none_on_single_venue_fallback():
     m = _market("kalshi", "K1", "Market", liquidity=5000)
     decision = route([], all_markets=[m])
     assert decision.price_divergence is None
+
+
+def test_runner_up_is_from_other_venue():
+    """When both venues have candidates, runner_up_market is from the other venue (not second-best overall)."""
+    k1 = _market("kalshi", "K1", "Kalshi A", yes_price=0.5, liquidity=5000)
+    p1 = _market("polymarket", "P1", "Poly A", yes_price=0.5, liquidity=5000)
+    p2 = _market("polymarket", "P2", "Poly B", yes_price=0.5, liquidity=10000)  # higher liquidity
+    match1 = MatchResult(market_a=k1, market_b=p1, score=0.9, method="fuzzy", explanation="1")
+    match2 = MatchResult(market_a=k1, market_b=p2, score=0.9, method="fuzzy", explanation="2")
+    decision = route([match1, match2], order_size=100.0)
+    assert decision.runner_up_market is not None
+    assert decision.runner_up_market.venue != decision.selected_venue

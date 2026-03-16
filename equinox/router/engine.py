@@ -217,12 +217,18 @@ def route(
     price_divergence: float | None = None
     arb_warning = ""
     if not is_single_venue_fallback and loser is not winner:
-        price_divergence = round(abs(winner.yes_price - loser.yes_price), 4)
+        winner_price = float(winner.yes_price)
+        loser_price = float(loser.yes_price)
+        price_divergence = round(abs(winner_price - loser_price), 4)
+        assert price_divergence >= 0, "price_divergence must be non-negative"
+        assert price_divergence == round(
+            abs(winner_price - loser_price), 4
+        ), "price_divergence must equal abs(winner_price - loser_price) in same unit"
         if price_divergence > 0.10:
             arb_warning = (
                 f"⚠️ LARGE PRICE DIVERGENCE: {winner.venue.capitalize()} prices YES "
-                f"at {winner.yes_price:.4f} vs {loser.venue.capitalize()} at "
-                f"{loser.yes_price:.4f} — a {price_divergence*100:.1f}¢ gap on "
+                f"at ${winner.yes_price:.4f} vs {loser.venue.capitalize()} at "
+                f"${loser.yes_price:.4f} — a ${price_divergence:.4f} gap on "
                 "what should be the same event. This may indicate: (1) a genuine "
                 "arbitrage opportunity, (2) a stale price on one venue, or (3) a "
                 "false match (different events incorrectly linked). Verify match "
@@ -282,12 +288,12 @@ def route(
     estimated_savings_text = f"Save ~${estimated_savings:.2f}" if estimated_savings > 0 else "—"
 
     winner_spread_desc = (
-        f"{winner.spread_width*100:.1f}¢ bid-ask spread"
+        f"${winner.spread_width:.4f} bid-ask spread"
         if winner.spread_width is not None
         else "no spread data (conviction proxy used)"
     )
     loser_spread_desc = (
-        f"{loser.spread_width*100:.1f}¢ bid-ask spread"
+        f"${loser.spread_width:.4f} bid-ask spread"
         if loser.spread_width is not None
         else "no spread data (conviction proxy used)"
     )
@@ -330,7 +336,7 @@ def route(
         f"(source: {winner.price_source}) vs "
         f"{loser.venue.capitalize()} yes_price: {loser.yes_price:.4f} "
         f"(source: {loser.price_source}) — "
-        f"a {abs(winner.yes_price - loser.yes_price)*100:.1f}¢ mid-price difference. "
+        f"a ${abs(winner.yes_price - loser.yes_price):.4f} mid-price difference. "
         f"{fee_explanation}"
         f"{arb_warning}"
         f"{winner.venue.capitalize()} execution: {winner_spread_desc} vs "

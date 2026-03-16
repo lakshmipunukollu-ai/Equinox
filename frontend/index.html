@@ -803,7 +803,7 @@
       const winnerCost = orderSize * (winnerAllIn != null ? winnerAllIn : (winner.yes_price + (winner.fee_model === 'additive' ? winner.fee_rate : 0)));
       const loserCost = orderSize * (loserAllIn != null ? loserAllIn : (loser.yes_price + (loser.fee_model === 'additive' ? loser.fee_rate : 0)));
       const winnerCheaper = winnerCost <= loserCost;
-      dynamicEl.innerHTML = 'At $' + orderSize.toLocaleString() + ': Save ~$' + savings.toFixed(2) + ' → ' + (winnerCheaper ? winner.venue : loser.venue);
+      dynamicEl.innerHTML = 'At $' + orderSize.toLocaleString() + ': ' + formatSavings(savings) + ' → ' + (winnerCheaper ? winner.venue : loser.venue);
     }
 
     autoRefreshToggle.addEventListener('change', () => {
@@ -954,22 +954,24 @@
     function buildPlainReasoning(route, orderSize) {
       const winner = route.selected_market;
       const loser = route.runner_up_market;
-      const winnerVenue = winner.venue || 'Winner';
-      const loserVenue = loser ? (loser.venue || 'Other') : 'Other venue';
-      const priceDiff = route.price_divergence != null ? route.price_divergence * 100 : 0;
-      const winnerAllIn = route.winner_all_in_cost != null ? route.winner_all_in_cost : (winner.yes_price + (winner.fee_model === 'additive' ? winner.fee_rate : winner.yes_price * winner.fee_rate));
-      const loserAllIn = loser && route.loser_all_in_cost != null ? route.loser_all_in_cost : (loser ? (loser.yes_price + (loser.fee_model === 'additive' ? loser.fee_rate : loser.yes_price * loser.fee_rate)) : 0);
-      const savings = (route.estimated_savings != null ? route.estimated_savings : (loser ? Math.max(0, orderSize * (loserAllIn - winnerAllIn)) : 0));
-      const priceText = priceDiff === 0
+      const winnerVenue = (winner && winner.venue) ? winner.venue.charAt(0).toUpperCase() + winner.venue.slice(1) : 'Winner';
+      const loserVenue = loser && loser.venue ? (loser.venue.charAt(0).toUpperCase() + loser.venue.slice(1)) : 'Other venue';
+      const winnerPriceDecimal = winner && typeof winner.yes_price === 'number' ? Number(winner.yes_price) : 0;
+      const loserPriceDecimal = loser && typeof loser.yes_price === 'number' ? Number(loser.yes_price) : winnerPriceDecimal;
+      const priceDiffDollars = Math.abs(winnerPriceDecimal - loserPriceDecimal);
+      const winnerAllIn = route.winner_all_in_cost != null ? route.winner_all_in_cost : (winner && (winner.yes_price + (winner.fee_model === 'additive' ? winner.fee_rate : winner.yes_price * winner.fee_rate)));
+      const loserAllIn = loser && route.loser_all_in_cost != null ? route.loser_all_in_cost : (loser ? (loser.yes_price + (loser.fee_model === 'additive' ? loser.fee_rate : loser.yes_price * loser.fee_rate)) : winnerAllIn);
+      const savingsDollars = (route.estimated_savings != null ? route.estimated_savings : (loser ? Math.max(0, orderSize * (loserAllIn - winnerAllIn)) : 0));
+      const priceText = priceDiffDollars < 0.0005
         ? 'Both platforms have the same price for this contract.'
-        : `${winnerVenue} has a better price (${priceDiff.toFixed(1)}¢ difference).`;
+        : `${winnerVenue} has a better price (${formatPrice(priceDiffDollars)} per share).`;
       let feeText = `We picked ${winnerVenue} for this market.`;
       if (loser && route.winner_all_in_cost != null && route.loser_all_in_cost != null) {
-        feeText = `${winnerVenue}'s all-in cost (${(route.winner_all_in_cost * 100).toFixed(2)}¢) is lower than ${loserVenue}'s (${(route.loser_all_in_cost * 100).toFixed(2)}¢) at this price level.`;
+        feeText = `${winnerVenue}'s all-in cost is ${formatPrice(route.winner_all_in_cost)} per share vs ${loserVenue}'s ${formatPrice(route.loser_all_in_cost)} per share.`;
       } else if (loser) {
         feeText = `${winnerVenue}'s all-in cost is lower than ${loserVenue}'s at this price level.`;
       }
-      const savingsText = savings > 0 ? ` Estimated savings: ~$${savings.toFixed(2)} on your $${orderSize} order.` : '';
+      const savingsText = savingsDollars > 0 ? ` On a $${orderSize} order this saves you ${formatSavings(savingsDollars)} in fees.` : '';
       return priceText + ' ' + feeText + savingsText;
     }
 
@@ -1010,11 +1012,9 @@
         html += '<tr><th>' + escapeHtml(label) + '</th><td class="' + winnerCellClass + '">' + escapeHtml(String(wVal ?? '—')) + '</td><td class="' + loserCellClass + '">' + escapeHtml(String(lVal ?? '—')) + '</td></tr>';
       };
       if (loserMarket) {
-        row('Yes Price', formatYesPrice(sm.yes_price), formatYesPrice(loserMarket.yes_price));
+        row('Yes Price (per share)', formatPrice(sm.yes_price), formatPrice(loserMarket.yes_price));
         row('Liquidity', formatLiquidity(sm.liquidity), formatLiquidity(loserMarket.liquidity));
-        const winnerAllIn = routeData.winner_all_in_cost != null ? (routeData.winner_all_in_cost * 100).toFixed(2) + '¢' : '—';
-        const loserAllIn = routeData.loser_all_in_cost != null ? (routeData.loser_all_in_cost * 100).toFixed(2) + '¢' : '—';
-        row('All-in cost', winnerAllIn, loserAllIn);
+        row('All-in cost (per share)', routeData.winner_all_in_cost != null ? formatPrice(routeData.winner_all_in_cost) : '—', routeData.loser_all_in_cost != null ? formatPrice(routeData.loser_all_in_cost) : '—');
         row('Fee rate', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, (loserMarket.fee_rate * 100).toFixed(2) + '% ' + loserMarket.fee_model);
         const winGrade = routeData.winner_execution_quality || '—';
         const loseGrade = routeData.loser_execution_quality || '—';
@@ -1033,7 +1033,10 @@
       lastQuery = query || null;
       let html = '';
       if (document.body.classList.contains('demo-mode')) html += '<div class="demo-banner">Perfect for demo</div>';
-      if (fromCache) html += '<div class="cached-badge">Cached result</div>';
+      if (fromCache) {
+        html += '<div class="cached-badge">Cached result</div>';
+        console.log('Showing cached result. Reasoning uses cached routeData. Run a new search (or wait 5+ min) to refresh.');
+      }
       if (searchData && (searchData.kalshi_error || searchData.polymarket_error)) {
         html += '<div class="verdict-banner low">';
         if (searchData.kalshi_error) html += '⚠️ Kalshi: ' + escapeHtml(searchData.kalshi_error) + '. ';
@@ -1053,7 +1056,7 @@
 
         const savings = (routeData.estimated_savings != null ? routeData.estimated_savings : null);
         const verdictHigh = routeData.score >= 0.7;
-        const verdictMsg = winnerVenue + (savings != null && savings > 0 ? ` — save ~$${savings.toFixed(2)}` : '') + ' on fees for this $' + orderSize + ' order';
+        const verdictMsg = winnerVenue + (savings != null && savings > 0 ? ' — save ' + formatSavings(savings) : '') + ' in fees for this $' + orderSize + ' order';
 
         html += '<div class="card">';
         html += '<div class="card-header">';
@@ -1072,7 +1075,7 @@
 
         html += `<div class="market-title">${escapeHtml(sm.title)}</div>`;
         html += '<div id="dynamicSavings" class="verdict" style="margin-top:8px;">';
-        html += (savings != null && savings > 0) ? ('At $' + orderSize + ': Save ~$' + savings.toFixed(2) + ' → ' + winnerVenue) : '';
+        html += (savings != null && savings > 0) ? ('At $' + orderSize + ': ' + formatSavings(savings) + ' → ' + winnerVenue) : '';
         html += '</div>';
 
         html += '<div class="plain-reasoning">';
@@ -1113,12 +1116,10 @@
         };
 
         if (loserMarket) {
-          row('Yes Price', formatYesPrice(sm.yes_price), formatYesPrice(loserMarket.yes_price));
-          row('Liquidity', formatLiquidity(sm.liquidity), formatLiquidity(loserMarket.liquidity));
-          const winnerAllIn = routeData.winner_all_in_cost != null ? (routeData.winner_all_in_cost * 100).toFixed(2) + '¢' : '—';
-          const loserAllIn = routeData.loser_all_in_cost != null ? (routeData.loser_all_in_cost * 100).toFixed(2) + '¢' : '—';
-          row('All-in cost', winnerAllIn, loserAllIn);
-          row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, (loserMarket.fee_rate * 100).toFixed(2) + '% ' + loserMarket.fee_model);
+        row('Yes Price (per share)', formatPrice(sm.yes_price), formatPrice(loserMarket.yes_price));
+        row('Liquidity', formatLiquidity(sm.liquidity), formatLiquidity(loserMarket.liquidity));
+        row('All-in cost (per share)', routeData.winner_all_in_cost != null ? formatPrice(routeData.winner_all_in_cost) : '—', routeData.loser_all_in_cost != null ? formatPrice(routeData.loser_all_in_cost) : '—');
+        row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, (loserMarket.fee_rate * 100).toFixed(2) + '% ' + loserMarket.fee_model);
           row('Price Source', sm.price_source, loserMarket.price_source);
           const winGrade = routeData.winner_execution_quality || '—';
           const loseGrade = routeData.loser_execution_quality || '—';
@@ -1135,11 +1136,11 @@
           const loseBarPct = Math.min(100, loseUtilPct * 5);
           html += '<tr><th>Order utilization</th><td class="' + winnerBorder + '">' + winUtilPct.toFixed(1) + '% <span class="util-bar"><span class="util-bar-fill ' + winUtilClass + '"><div style="width:' + winBarPct + '%"></div></span></span></td><td class="' + loserBorder + '">' + loseUtilPct.toFixed(1) + '% <span class="util-bar"><span class="util-bar-fill ' + loseUtilClass + '"><div style="width:' + loseBarPct + '%"></div></span></span></td></tr>';
           if (savings != null || routeData.estimated_savings_text) {
-            const savingsDisplay = (routeData.estimated_savings_text && routeData.estimated_savings_text !== '—') ? escapeHtml(routeData.estimated_savings_text) : (savings != null && savings > 0 ? 'Save ~$' + savings.toFixed(2) : '—');
-            html += '<tr><th>Estimated Savings</th><td class="' + winnerBorder + '">—</td><td class="' + loserBorder + ' savings-cell"><span class="savings-val">' + savingsDisplay + '</span></td></tr>';
+            const savingsDisplay = (routeData.estimated_savings_text && routeData.estimated_savings_text !== '—') ? escapeHtml(routeData.estimated_savings_text) : (savings != null && savings > 0 ? 'Save ' + formatSavings(savings) + ' on order' : '—');
+            html += '<tr><th>Estimated savings (on order)</th><td class="' + winnerBorder + '">—</td><td class="' + loserBorder + ' savings-cell"><span class="savings-val">' + savingsDisplay + '</span></td></tr>';
           }
         } else {
-          row('Yes Price', formatYesPrice(sm.yes_price), loser ? '—' : 'No equivalent market found on other venue');
+          row('Yes Price', formatPrice(sm.yes_price), loser ? '—' : 'No equivalent market found on other venue');
           row('Liquidity', formatLiquidity(sm.liquidity), '—');
           row('Fee Rate + model', (sm.fee_rate * 100).toFixed(2) + '% ' + sm.fee_model, '—');
           row('Price Source', sm.price_source, '—');
@@ -1164,24 +1165,24 @@
         const deltas = searchData.matches.map(m => {
           const ka = m.market_a?.venue?.toLowerCase() === 'kalshi' ? m.market_a : m.market_b;
           const pm = m.market_a?.venue?.toLowerCase() === 'polymarket' ? m.market_a : m.market_b;
-          return ka && pm ? Math.abs(ka.yes_price - pm.yes_price) * 100 : 0;
+          return ka && pm ? Math.abs(ka.yes_price - pm.yes_price) : 0;
         });
         const maxDelta = Math.max(...deltas, 0);
 
         searchData.matches.forEach((m, idx) => {
           const ka = m.market_a?.venue?.toLowerCase() === 'kalshi' ? m.market_a : m.market_b;
           const pm = m.market_a?.venue?.toLowerCase() === 'polymarket' ? m.market_a : m.market_b;
-          const deltaC = ka && pm ? Math.abs(ka.yes_price - pm.yes_price) * 100 : 0;
-          const deltaClass = deltaC >= 0.4 ? 'delta-green' : (deltaC >= 0.1 ? 'delta-yellow' : 'delta-gray');
-          const isBest = deltaC >= 0.4 && Math.abs(deltaC - maxDelta) < 0.01;
+          const deltaDollars = ka && pm ? Math.abs(ka.yes_price - pm.yes_price) : 0;
+          const deltaClass = deltaDollars >= 0.004 ? 'delta-green' : (deltaDollars >= 0.001 ? 'delta-yellow' : 'delta-gray');
+          const isBest = deltaDollars >= 0.004 && Math.abs(deltaDollars - maxDelta) < 0.0001;
           const title = (ka?.title || pm?.title || 'Match') + (idx === 0 ? '' : '');
           html += '<div class="match-row-card' + (isBest ? ' best-delta' : '') + '" data-match-index="' + idx + '">';
           html += '<div class="match-row-header">';
           html += '<span class="expand-indicator">▶</span>';
           html += '<div><div class="match-row-title">' + escapeHtml(title) + '</div>';
           html += '<div class="match-row-meta">';
-          html += '<span class="kalshi-label">Kalshi:</span> <span class="kalshi-val">' + (ka ? formatYesPrice(ka.yes_price) : '—') + '</span> &nbsp; ' + Math.round((m.score || 0) * 100) + '% match &nbsp; <span class="poly-label">Poly:</span> <span class="poly-val">' + (pm ? formatYesPrice(pm.yes_price) : '—') + '</span>';
-          html += ' &nbsp; <span class="price ' + deltaClass + '">Δ ' + deltaC.toFixed(1) + '¢</span>';
+          html += '<span class="kalshi-label">Kalshi:</span> <span class="kalshi-val">' + (ka ? formatPrice(ka.yes_price) : '—') + '</span> &nbsp; ' + Math.round((m.score || 0) * 100) + '% match &nbsp; <span class="poly-label">Poly:</span> <span class="poly-val">' + (pm ? formatPrice(pm.yes_price) : '—') + '</span>';
+          html += ' &nbsp; <span class="price ' + deltaClass + '">' + formatDelta(deltaDollars) + '</span>';
           if (isBest) html += '<span class="best-delta-badge">Best Δ</span>';
           html += '</div></div></div>';
           html += '<div class="match-row-expand-content"><div class="match-row-expand-inner"></div></div>';
@@ -1247,12 +1248,24 @@
       return Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
     }
 
-    /** yes_price is 0-1 probability; normalize if API ever sends 0-100. */
-    function formatYesPrice(p) {
-      if (p == null || Number.isNaN(p)) return '—';
-      const prob = Number(p);
-      const decimal = prob > 1 ? prob / 100 : prob;
-      return (decimal * 100).toFixed(1) + '¢';
+    /** Price in dollars: decimal 0-1 (e.g. 0.007) → $0.0070. Use for yes_price and all-in cost per share. */
+    function formatPrice(decimal) {
+      if (decimal == null || Number.isNaN(decimal)) return '—';
+      const d = Number(decimal);
+      const val = d > 1 ? d / 100 : d;
+      return '$' + val.toFixed(4);
+    }
+
+    /** Delta (price difference) in dollars for display. */
+    function formatDelta(decimal) {
+      if (decimal == null || Number.isNaN(decimal)) return 'Δ $0.0000';
+      return 'Δ $' + Math.abs(Number(decimal)).toFixed(4);
+    }
+
+    /** Savings in dollars (on order). */
+    function formatSavings(dollars) {
+      if (dollars == null || Number.isNaN(dollars)) return '—';
+      return '~$' + Number(dollars).toFixed(2);
     }
   </script>
 </body>
